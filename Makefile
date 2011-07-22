@@ -1,11 +1,11 @@
-# Makefile for vdt-system-profiler
+# Makefile for osg-system-profiler
 
 
 # ------------------------------------------------------------------------------
 # Release information: Update for each release
 # ------------------------------------------------------------------------------
 
-PACKAGE := vdt-system-profiler
+PACKAGE := osg-system-profiler
 VERSION := 0.0.2
 
 
@@ -14,7 +14,7 @@ VERSION := 0.0.2
 # ------------------------------------------------------------------------------
 
 BIN_DIR := usr/bin
-BIN_FILES := vdt-system-profiler
+BIN_FILES := osg-system-profiler
 
 DIST_FILES := $(BIN_FILES) Makefile
 
