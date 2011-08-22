@@ -258,6 +258,10 @@ echo "***** RPM information " >> $log
 rpm -qa | sort                >> $log
 echo ""                       >> $log
 
+echo "***** CA Certificates"  >> $log
+rpm -q --whatprovides grid-certificates >> $log 2>&1
+echo ""                       >> $log
+
 echo ""
 echo "Your system profile is located in:"
 echo "  $log"
