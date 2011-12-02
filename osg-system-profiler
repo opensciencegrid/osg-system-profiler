@@ -212,7 +212,6 @@ echo "" >> $log
 echo "***** CA Certificates "                         >> $log
 if [ -r /etc/grid-security/certificates ]; then 
     ls -l /etc/grid-security/certificates             >> $log
-    ls -l /etc/grid-security/certificates             >> $log
 else
     echo "Can't find /etc/grid-security/certificates" >> $log
 fi
