@@ -13,13 +13,13 @@
 dir=`pwd`
 
 if [ ! -w $dir ]; then
-    echo "I'm sorry, I don't have permission to create vdt-profile.txt"
+    echo "I'm sorry, I don't have permission to create osg-profile.txt"
     echo "in the current directory. Please change into a directory where"
     echo "you have permission, or switch to a user that does have permission"
     exit 1
 fi
 
-log=$dir/"vdt-profile.txt"
+log=$dir/"osg-profile.txt"
 rm -f $log
 
 echo "VDT System Profiler"
