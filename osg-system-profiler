@@ -1,14 +1,101 @@
 #!/bin/sh
 
-# Ideas for the future
-#   - Can we look up hostname in both directions? 
-#   - iostat?
-#   - vmstat?
-#   - lsof? 
-#   - Detect firewall? 
-#   - Man page for this command? 
-#   - sudoers (if root?) 
-#   - Details from any log files? Globus logs, tomcat, etc. 
+check_rpm()
+{
+    RPM=$1
+
+    echo "***** RPM: $RPM"                    >> $log
+    rpm -q $RPM >> $log
+    if [ $? -eq 0 ]; then
+        rpm -q --verify $RPM                  >> $log
+        if [ $? -eq 0 ]; then
+            echo "$RPM has not been modified" >> $log
+        fi
+        RC=0
+    else
+        RC=1
+    fi
+    echo ""                                   >> $log
+}
+
+check_cert()
+{
+    CERT=$1
+    echo "***** Certificate: $CERT"         >> $log
+    if [ -r $CERT ]; then
+        openssl x509 -in $CERT -text -noout >> $log
+    else
+        echo "Can't read $CERT"             >> $log
+    fi
+    echo ""                                 >> $log
+}
+
+tail_log()
+{
+    LOG=$1
+    LINES=$2
+    echo "***** $LOG (last $LINES lines)" >> $log
+    if [ -r $LOG ]; then
+        tail --lines=$LINES $LOG          >> $log
+    else 
+        echo "$LOG doesn't exist"         >> $log
+    fi
+    echo ""                               >> $log
+}
+
+dump_file()
+{
+    FILE=$1
+    echo "***** $FILE"                   >> $log
+    if [ -r $FILE ]; then
+        cat $FILE                        >> $log
+    else 
+        echo "$FILE doesn't exist"       >> $log
+    fi
+    echo ""                              >> $log
+}
+
+dump_files_in_dir()
+{
+    DIR=$1
+    echo "***** Files in $DIR" >> $log
+    if [ -d $DIR ]; then
+        find $DIR -type f | xargs -iX bash -c "echo Yum Repo: X; cat X; echo" >> $log
+    else
+        echo "$DIR can't be read" >> $log
+    fi
+    echo "" >> $log
+}
+
+list_directory()
+{
+    DIR=$1
+    echo "***** Contents of $DIR" >> $log
+    if [ -d $DIR ]; then
+        ls -laF $DIR              >> $log
+    else
+        echo $DIR                 >> $log
+    fi
+    echo ""                       >> $log
+
+}
+
+run_cmd()
+{
+    CMD=$1
+    shift
+    OPTIONS=$@
+
+    echo "***** Running: $CMD $OPTIONS"         >> $log
+    which $CMD > /dev/null 2>&1
+    if [ $? -eq 0 ]; then
+        $CMD $OPTIONS                           >> $log 2>&1
+    else
+        echo $?                                 >> $log
+        echo "Cannot find $CMD."                >> $log
+    fi
+    echo ""                                     >> $log
+}
 
 dir=`pwd`
 
@@ -22,243 +109,86 @@ fi
 log=$dir/"osg-profile.txt"
 rm -f $log
 
-echo "VDT System Profiler"
+echo "OSG System Profiler"
 echo "Analyzing..."
 
-echo "VDT System Profile " >> $log
-date                       >> $log
-echo ""                    >> $log
-
-echo "***** Hostname "  >> $log
-hostname                >> $log
-echo ""                 >> $log
-
-echo "***** Uname"      >> $log
-uname -a                >> $log
-echo ""                 >> $log
-
-echo "***** /etc/issue" >> $log
-if [ -r /etc/issue ]; then
-    echo "/etc/issue: " >> $log
-    cat /etc/issue      >> $log
-else
-    echo "Can't read /etc/issue" >> $log
-fi
-echo ""                 >> $log
-
-echo "***** /etc/redhat-release"           >> $log
-if [ -r /etc/redhat-release ]; then
-    cat /etc/redhat-release                >> $log
-else
-    echo "Can't read /etc/redhat-release"  >> $log
-fi
-echo ""                                    >> $log
-
-echo "***** gcc"          >> $log
-which gcc > /dev/null 2>&1
-if [ $? -eq 0 ]; then
-    gcc -v                >> $log 2>&1
-else
-    echo "Can't find gcc" >> $log
-fi
+echo "OSG System Profile" >> $log
+echo Created at `date`    >> $log
 echo ""                   >> $log
 
-echo "***** g++"          >> $log
-which g++ > /dev/null 2>&1
+run_cmd hostname
+run_cmd uname -a
+
+check_rpm "kernel"
+
+dump_file "/etc/issue"
+dump_file "/etc/redhat-release"
+dump_file "/etc/nsswitch.conf"
+dump_file "/etc/hosts"
+
+run_cmd df --human-readable --print-type
+run_cmd free
+
+dump_file "/proc/cpuinfo"
+
+run_cmd netstat -i
+run_cmd /sbin/iptables -L
+
+dump_file "/etc/selinux/config"
+dump_file "/selinux/enforce"
+
+run_cmd osg-version
+rpm -qa | grep "^osg" | xargs -n 1 rpm -q >> $log
+echo "" >> $log
+
+check_rpm "perl"
+run_cmd perl -V
+
+check_rpm "python"
 if [ $? -eq 0 ]; then
-    g++ -v                >> $log 2>&1
-else
-    echo "Can't find g++" >> $log
-fi
-echo ""                   >> $log
-
-echo "***** Using NIS?"                  >> $log
-if [ -r /etc/nsswitch.conf ]; then
-    cat /etc/nsswitch.conf               >> $log
-else
-    echo "Can't read /etc/nsswitch.conf" >> $log
+    echo "***** Python information:"                                                    >> $log
+    python -c "import sys; print 'Version: ' + sys.version"                             >> $log
+    python -c "import sys; print 'Executable: ' + sys.executable"                       >> $log
+    python -c "import sys; print 'Prefix: ' + sys.prefix"                               >> $log
+    python -c 'import platform; print "Architecture: ",; print platform.architecture()' >> $log
+    python -c "import sys; print 'Search paths: ',; print  sys.path"                    >> $log
+    echo ""                                                                             >> $log
 fi
 
-echo "***** /etc/hosts"          >> $log
-if [ -r /etc/hosts ]; then
-    cat /etc/hosts               >> $log
-else
-    echo "Can't read /etc/hosts" >> $log
-fi
-echo ""                          >> $log
+check_rpm openssl
+run_cmd openssl version
 
-echo "***** All disks"           >> $log
-df --human-readable --print-type >> $log
-echo ""                          >> $log
+run_cmd /usr/bin/env
 
-echo "***** Memory" >> $log
-free                >> $log
-echo ""             >> $log
+list_directory "/etc/grid-security"
+check_cert "/etc/grid-security/hostcert.pem"
+check_cert "/etc/grid-security/http/httpcert.pem"
+check_cert "/etc/grid-security/rsv/rsvcert.pem"
 
-echo "***** CPU Information" >> $log
-cat /proc/cpuinfo            >> $log
-echo ""                      >> $log
+run_cmd rpm -q --whatprovides grid-certificates
+list_directory "/etc/grid-security/certificates"
 
-echo "***** Network Interface Info" >> $log
-if [ `uname` != "AIX" -a `uname` != "Darwin" ]; then
-    netstat -i -e                      >> $log
-else
-    netstat -i                         >> $log
-fi
-echo ""                             >> $log
+dump_file "/etc/grid-security/gsi-authz.conf"
 
-echo "***** IPTables "              >> $log
-if [ -x /sbin/iptables ]; then
-    /sbin/iptables -L               >> $log 2>&1
-else
-    echo "Can't run /sbin/iptables" >> $log
-fi
-echo ""                             >> $log
+dump_files_in_dir "/etc/osg/config.d"
 
-echo "***** SELinux "                        >> $log
-if [ -r /etc/selinux/config ]; then
-    echo "Contents of /etc/selinux/config: " >> $log
-    cat /etc/selinux/config                  >> $log
-else
-    echo "Can't read /etc/selinux/config"    >> $log
-fi
-echo ""                                      >> $log
+check_rpm rpm
+check_rpm yum
 
-if [ -r /selinux/enforce ]; then
-    echo "Contents of /selinux/enforce: " >> $log
-    cat /selinux/enforce                  >> $log
-else
-    echo "Can't read /selinux/enforce"    >> $log
-fi
-echo ""                                   >> $log
+dump_file "/etc/yum.conf"
 
-echo "***** Perl configuration information" >> $log
-which perl > /dev/null 2>&1
-if [ $? -eq 0 ]; then
-    echo Perl executable: `which perl`      >> $log 2>&1
-    file `which perl`                       >> $log 2>&1
-    perl -V                                 >> $log 2>&1
-else
-    echo $?                                 >> $log
-    echo "Can't find perl."                 >> $log
-fi
-echo ""                                     >> $log
+dump_files_in_dir "/etc/yum.repos.d/"
 
-echo "***** Python stuff"                   >> $log
-which python > /dev/null 2>&1
-if [ $? -eq 0 ]; then
-    echo Python executable: `which python` >> $log 2>&1
-    file `which python`                    >> $log 2>&1
-    python -c 'import sys; print "Version: " + sys.version; print "Executable: " + sys.executable; print "Prefix: " + sys.prefix' >> $log 2>&1
-else
-    echo $?                                 >> $log
-    echo "Can't find python."               >> $log
-fi
-echo ""                                     >> $log
+tail_log /var/log/globus-gatekeeper.log 200
+tail_log /var/log/edg-mkgridmap.log 50
+tail_log /var/log/glite-ce-monitor/glite-ce-monitor.log 200
+tail_log /var/log/gip/gip.log 200
+tail_log /var/log/gridftp.log 200
+tail_log /var/log/gridftp-auth.log 200
 
-echo "***** Your environment"  >> $log
-env                            >> $log
-echo ""                        >> $log
 
-echo "***** Openssl version"           >> $log
-which openssl > /dev/null 2>&1
-if [ $? -eq 0 ]; then
-    openssl version                    >> $log 2>&1
-else
-    echo $?                            >> $log
-    echo "Can't find openssl."         >> $log
-fi
-echo ""                                >> $log
-
-echo "***** OpenSSL libraries" >> $log
-ls -ld /lib/*ssl*         >> $log 2>&1
-ls -ld /usr/lib/*ssl*     >> $log 2>&1
-ls -ld /lib/*crypto*      >> $log 2>&1
-ls -ld /usr/lib/*crypto*  >> $log 2>&1
-echo ""                   >> $log
-
-echo "***** Contents of /etc/grid-security" >> $log
-if [ -d /etc/grid-security ]; then
-    ls -laF /etc/grid-security              >> $log
-else
-    echo "/etc/grid-security can't be read." >> $log
-fi
-echo ""                                      >> $log
-
-echo "***** /etc/grid-security/hostcert.pem" >> $log
-if [ -r /etc/grid-security/hostcert.pem ]; then
-    openssl x509 -in /etc/grid-security/hostcert.pem -text -noout >> $log
-else
-    echo "Can't read hostcert" >> $log
-fi
-echo "" >> $log
-
-echo "***** /etc/grid-security/http/httpcert.pem" >> $log
-if [ -r /etc/grid-security/http/httpcert.pem ]; then
-    openssl x509 -in /etc/grid-security/http/httpcert.pem -text -noout >> $log
-else
-    echo "Can't read httpcert" >> $log
-fi
-echo "" >> $log
-
-echo "***** /etc/grid-security/rsv/rsvcert.pem" >> $log
-if [ -r /etc/grid-security/rsv/rsvcert.pem ]; then
-    openssl x509 -in /etc/grid-security/rsv/rsvcert.pem -text -noout >> $log
-else
-    echo "Can't read httpcert" >> $log
-fi
-echo "" >> $log
-
-echo "***** CA Certificates "                         >> $log
-if [ -r /etc/grid-security/certificates ]; then 
-    ls -l /etc/grid-security/certificates             >> $log
-else
-    echo "Can't find /etc/grid-security/certificates" >> $log
-fi
-echo ""                                               >> $log 
-
-echo "***** ulimit" >> $log
-ulimit -a           >> $log
-echo ""             >> $log
-
-echo "***** PRIMA configuration files (gsi-authz.conf)" >> $log
-if [ -r /etc/grid-security/gsi-authz.conf ]; then
-    cat /etc/grid-security/gsi-authz.conf               >> $log
-else
-    echo "Can't find /etc/grid-security/gsi-authz.conf" >> $log
-fi
-echo "" >> $log
-
-echo "***** PRIMA configuration files (prima-authz.conf)" >> $log
-if [ -r /etc/grid-security/prima-authz.conf ]; then
-    cat /etc/grid-security/prima-authz.conf               >> $log
-else
-    echo "Can't find /etc/grid-security/prima-authz.conf" >> $log
-fi
-echo "" >> $log
-
-echo "***** yum.conf "              >> $log
-if [ -r /etc/yum.conf ]; then
-    cat /etc/yum.conf               >> $log
-else
-    echo "Can't find /etc/yum.conf" >> $log
-fi
-echo "" >> $log
-
-echo "***** yum.repos.d" >> $log
-if [ -d /etc/yum.repos.d/ ]; then
-    find /etc/yum.repos.d/ -type f | xargs -iX bash -c "echo Yum Repo: X; cat X; echo" >> $log
-else
-    echo "No /etc/yum.repos.d" >> $log
-fi
-echo "" >> $log
-
-echo "***** RPM information " >> $log
+echo "***** All RPMs " >> $log
 rpm -qa | sort                >> $log
-echo ""                       >> $log
-
-echo "***** CA Certificates"  >> $log
-rpm -q --whatprovides grid-certificates >> $log 2>&1
 echo ""                       >> $log
 
 echo ""
