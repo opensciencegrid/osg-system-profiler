@@ -5,9 +5,9 @@ check_rpm()
     RPM=$1
 
     echo "***** RPM: $RPM"                    >> $log
-    rpm -q $RPM >> $log
+    rpm -q $RPM                               >> $log 2>&1
     if [ $? -eq 0 ]; then
-        rpm -q --verify $RPM                  >> $log
+        rpm -q --verify $RPM                  >> $log 2>&1
         if [ $? -eq 0 ]; then
             echo "$RPM has not been modified" >> $log
         fi
@@ -23,7 +23,7 @@ check_cert()
     CERT=$1
     echo "***** Certificate: $CERT"         >> $log
     if [ -r $CERT ]; then
-        openssl x509 -in $CERT -text -noout >> $log
+        openssl x509 -in $CERT -text -noout >> $log 2>&1
     else
         echo "Can't read $CERT"             >> $log
     fi
@@ -36,7 +36,7 @@ tail_log()
     LINES=$2
     echo "***** $LOG (last $LINES lines)" >> $log
     if [ -r $LOG ]; then
-        tail --lines=$LINES $LOG          >> $log
+        tail --lines=$LINES $LOG          >> $log 2>&1
     else 
         echo "$LOG doesn't exist"         >> $log
     fi
@@ -48,7 +48,7 @@ dump_file()
     FILE=$1
     echo "***** $FILE"                   >> $log
     if [ -r $FILE ]; then
-        cat $FILE                        >> $log
+        cat $FILE                        >> $log 2>&1
     else 
         echo "$FILE doesn't exist"       >> $log
     fi
@@ -72,7 +72,7 @@ list_directory()
     DIR=$1
     echo "***** Contents of $DIR" >> $log
     if [ -d $DIR ]; then
-        ls -laF $DIR              >> $log
+        ls -laF $DIR              >> $log 2>&1
     else
         echo $DIR                 >> $log
     fi
