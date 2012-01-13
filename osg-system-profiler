@@ -60,7 +60,7 @@ dump_files_in_dir()
     DIR=$1
     echo "***** Files in $DIR" >> $log
     if [ -d $DIR ]; then
-        find $DIR -type f | xargs -iX bash -c "echo Yum Repo: X; cat X; echo" >> $log
+        find $DIR -type f | xargs -iX bash -c "echo File: X; cat X; echo" >> $log
     else
         echo "$DIR can't be read" >> $log
     fi
