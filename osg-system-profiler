@@ -16,6 +16,7 @@ check_rpm()
         RC=1
     fi
     echo ""                                   >> $log
+    return $RC
 }
 
 check_cert()
@@ -141,6 +142,10 @@ run_cmd osg-version
 rpm -qa | grep "^osg" | xargs -n 1 rpm -q >> $log
 echo "" >> $log
 
+check_rpm "osg-configure"
+tail_log /var/log/osg/osg-configure.log 200
+dump_files_in_dir "/etc/osg/config.d"
+
 check_rpm "perl"
 run_cmd perl -V
 
@@ -170,8 +175,6 @@ list_directory "/etc/grid-security/certificates"
 
 dump_file "/etc/grid-security/gsi-authz.conf"
 
-dump_files_in_dir "/etc/osg/config.d"
-
 check_rpm rpm
 check_rpm yum
 
@@ -185,6 +188,8 @@ tail_log /var/log/glite-ce-monitor/glite-ce-monitor.log 200
 tail_log /var/log/gip/gip.log 200
 tail_log /var/log/gridftp.log 200
 tail_log /var/log/gridftp-auth.log 200
+tail_log /var/log/bestman2/bestman2.log 200 
+tail_log /var/log/bestman2/event.srm.log 200 
 
 
 echo "***** All RPMs " >> $log
@@ -198,3 +203,6 @@ echo ""
 echo "If you are having problems, please mail a description of your problem and"
 echo "this file to vdt-support@opensciencegrid.org"
 echo ""
+
+exit 0
+
