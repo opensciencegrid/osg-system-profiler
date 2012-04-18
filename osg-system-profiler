@@ -174,11 +174,17 @@ run_cmd rpm -q --whatprovides grid-certificates
 list_directory "/etc/grid-security/certificates"
 
 dump_file "/etc/grid-security/gsi-authz.conf"
+dump_file "/etc/lcmaps.db"
 
 check_rpm rpm
 check_rpm yum
 
 dump_file "/etc/yum.conf"
+echo "***** Questions about yum.conf to consider:"    >> $log
+echo "Are plugins enabled in yum.conf?"               >> $log
+echo "If not, could be getting wrong RPMs from EPEL." >> $log
+echo ""                                               >> $log
+
 
 dump_files_in_dir "/etc/yum.repos.d/"
 
