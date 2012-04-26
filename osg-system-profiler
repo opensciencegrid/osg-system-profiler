@@ -133,7 +133,7 @@ run_cmd free
 dump_file "/proc/cpuinfo"
 
 run_cmd netstat -i
-run_cmd /sbin/iptables -Lv
+run_cmd /sbin/iptables -vL
 
 dump_file "/etc/selinux/config"
 dump_file "/selinux/enforce"
