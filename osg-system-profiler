@@ -188,6 +188,8 @@ echo ""                                               >> $log
 
 dump_files_in_dir "/etc/yum.repos.d/"
 
+dump_files_in_dir "/etc/globus/"
+
 tail_log /var/log/globus-gatekeeper.log 200
 tail_log /var/log/edg-mkgridmap.log 50
 tail_log /var/log/glite-ce-monitor/glite-ce-monitor.log 200
