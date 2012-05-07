@@ -4,6 +4,7 @@
 from Tkinter import *
 import ScrolledText
 import re
+import sys
 
 class Section(object):
     "A section from the profiler output"
@@ -16,20 +17,23 @@ def load_pdata_from_file(filename):
     pdata = []
     try:
         fh = open(filename, 'r')
+        try:
+            section = Section("TOP", "")
+            for line in fh:
+                section_match = re.match(r'[*]{5}\s*(.+?)\s*$', line)
 
-        section = Section("TOP", "")
-        for line in fh:
-            section_match = re.match(r'[*]{5}\s*(.+?)\s*$', line)
-
-            if section_match:
-                pdata.append(section)
-                section = Section(section_match.group(1), "")
-            else:
-                section.text += line
-        pdata.append(section)
-        return pdata
-    finally:
-        fh.close()
+                if section_match:
+                    pdata.append(section)
+                    section = Section(section_match.group(1), "")
+                else:
+                    section.text += line
+            pdata.append(section)
+            return pdata
+        finally:
+            fh.close()
+    except IOError, e:
+        print >> sys.stderr, "Error reading file %s: %s" % (filename, e.strerror)
+        sys.exit(1)
     
 
 class Application(Frame):
@@ -92,6 +96,7 @@ class Application(Frame):
             self.text.config(state=DISABLED)
 
     def copyall(self):
+        "Copy all text to the X clipboard"
         self.master.clipboard_clear()
         self.master.clipboard_append(self.text.get(1.0, END))
 
@@ -101,6 +106,10 @@ class Application(Frame):
 
 
 def main():
+    if len(sys.argv) < 2:
+        print "Usage: %s <FILENAME>" % sys.argv[0]
+        print "View the output of osg-system-profiler"
+        sys.exit(2)
     pdata = load_pdata_from_file(sys.argv[1])
     root = Tk()
     root.wm_title("osg-system-profiler viewer")
