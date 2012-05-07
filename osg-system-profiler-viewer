@@ -1,0 +1,112 @@
+#!/usr/bin/python
+"""View the output from osg-system-profiler in a structured way"""
+
+from Tkinter import *
+import ScrolledText
+import re
+
+class Section(object):
+    "A section from the profiler output"
+    def __init__(self, label, text):
+        self.label = label
+        self.text = text
+
+def load_pdata_from_file(filename):
+    "Load profiler data from filename and return as a list of Section objects"
+    pdata = []
+    try:
+        fh = open(filename, 'r')
+
+        section = Section("TOP", "")
+        for line in fh:
+            section_match = re.match(r'[*]{5}\s*(.+?)\s*$', line)
+
+            if section_match:
+                pdata.append(section)
+                section = Section(section_match.group(1), "")
+            else:
+                section.text += line
+        pdata.append(section)
+        return pdata
+    finally:
+        fh.close()
+    
+
+class Application(Frame):
+    "The GUI"
+
+    def __init__(self, master, pdata):
+        self.master = master
+        Frame.__init__(self, master)
+        self.pack(fill=BOTH, expand=True)
+
+        self.top = Frame(self)
+        self.top.pack(side=TOP, fill=X)
+
+        self.quitbtn = Button(self.top, text="QUIT", fg="red", command=self.quit)
+        self.quitbtn.pack(side=LEFT)
+
+        self.copyallbtn = Button(self.top, text="Copy All to X Clipboard", command=self.copyall)
+        self.copyallbtn.pack(side=LEFT)
+
+        self.bot = Frame(self)
+        self.bot.pack(side=BOTTOM, fill=BOTH, expand=True)
+
+        self.sectionlbx = Listbox(self.bot, selectmode=BROWSE)
+        self.sectionlbx.pack(side=LEFT, fill=BOTH, expand=True)
+        self.current = None
+
+        self.label = Label(self.top, text="")
+        self.label.pack(side=LEFT, fill=X)
+
+        self.text = ScrolledText.ScrolledText(self.bot)
+        self.text.pack(side=RIGHT, fill=BOTH, expand=True)
+
+        self.pdata = pdata
+        self.populate()
+
+        self.poll()
+
+    def populate(self):
+        "Fill the section list box with the labels"
+        self.sectionlbx.delete(0, END)
+        for section in self.pdata:
+            self.sectionlbx.insert(END, section.label)
+
+    def poll(self):
+        "Check if selection has changed"
+        now = self.sectionlbx.curselection()
+        if now != self.current:
+            self.list_has_changed(now)
+            self.current = now
+        self.after(250, self.poll)
+
+    def list_has_changed(self, now):
+        "Update the label and the text box"
+        if now:
+            idx = int(now[0])
+            self.label.configure(text=self.pdata[idx].label)
+            self.text.config(state=NORMAL)
+            self.text.delete(1.0, END)
+            self.text.insert(END, self.pdata[idx].text)
+            self.text.config(state=DISABLED)
+
+    def copyall(self):
+        self.master.clipboard_clear()
+        self.master.clipboard_append(self.text.get(1.0, END))
+
+
+
+            
+
+
+def main():
+    pdata = load_pdata_from_file(sys.argv[1])
+    root = Tk()
+    root.wm_title("osg-system-profiler viewer")
+    app = Application(root, pdata)
+    root.mainloop()
+
+if __name__ == '__main__':
+    main()
+

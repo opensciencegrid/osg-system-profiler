@@ -6,7 +6,7 @@
 # ------------------------------------------------------------------------------
 
 PACKAGE := osg-system-profiler
-VERSION := 1.0.7
+VERSION := 1.0.8
 
 
 # ------------------------------------------------------------------------------
@@ -14,7 +14,7 @@ VERSION := 1.0.7
 # ------------------------------------------------------------------------------
 
 BIN_DIR := usr/bin
-BIN_FILES := osg-system-profiler
+BIN_FILES := osg-system-profiler osg-system-profiler-viewer
 
 DIST_FILES := $(BIN_FILES) Makefile
 
