@@ -61,7 +61,7 @@ dump_files_in_dir()
     DIR=$1
     echo "***** Files in $DIR" >> $log
     if [ -d $DIR ]; then
-        find $DIR -type f | xargs -iX bash -c "echo File: X; cat X; echo" >> $log
+        find $DIR -type f | sort | xargs -iX bash -c "echo File: X; cat X; echo" >> $log
     else
         echo "$DIR can't be read" >> $log
     fi
@@ -120,7 +120,9 @@ echo ""                   >> $log
 run_cmd hostname
 run_cmd uname -a
 
-check_rpm "kernel"
+echo "***** Kernel RPMs"                                              >> $log
+rpm -qa | grep "^kernel" | sort | xargs --no-run-if-empty -n 1 -iX bash -c "rpm -q X; rpm -V X" >> $log
+echo ""                                                               >> $log
 
 dump_file "/etc/issue"
 dump_file "/etc/redhat-release"
@@ -139,7 +141,7 @@ dump_file "/etc/selinux/config"
 dump_file "/selinux/enforce"
 
 run_cmd osg-version
-rpm -qa | grep "^osg" | xargs -n 1 rpm -q >> $log
+rpm -qa | grep "^osg" | sort | xargs --no-run-if-empty -n 1 rpm -q >> $log
 echo "" >> $log
 
 check_rpm "osg-configure"
@@ -163,7 +165,9 @@ fi
 check_rpm openssl
 run_cmd openssl version
 
-run_cmd /usr/bin/env
+echo "***** Running: /usr/bin/env | sort" >> $log
+/usr/bin/env | sort                       >> $log
+echo ""                                   >> $log
 
 list_directory "/etc/grid-security"
 check_cert "/etc/grid-security/hostcert.pem"

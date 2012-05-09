@@ -47,17 +47,17 @@ class Application(Frame):
         self.top = Frame(self)
         self.top.pack(side=TOP, fill=X)
 
-        self.quitbtn = Button(self.top, text="QUIT", fg="red", command=self.quit)
-        self.quitbtn.pack(side=LEFT)
+        self.quit_btn = Button(self.top, text="QUIT", fg="red", command=self.quit)
+        self.quit_btn.pack(side=LEFT)
 
-        self.copyallbtn = Button(self.top, text="Copy All to X Clipboard", command=self.copyall)
-        self.copyallbtn.pack(side=LEFT)
+        self.copy_section_btn = Button(self.top, text="Copy Section to X Clipboard", command=self.copy_section)
+        self.copy_section_btn.pack(side=LEFT)
 
         self.bot = Frame(self)
         self.bot.pack(side=BOTTOM, fill=BOTH, expand=True)
 
-        self.sectionlbx = Listbox(self.bot, selectmode=BROWSE)
-        self.sectionlbx.pack(side=LEFT, fill=BOTH, expand=True)
+        self.section_lbx = Listbox(self.bot, selectmode=BROWSE)
+        self.section_lbx.pack(side=LEFT, fill=BOTH, expand=True)
         self.current = None
 
         self.label = Label(self.top, text="")
@@ -73,13 +73,13 @@ class Application(Frame):
 
     def populate(self):
         "Fill the section list box with the labels"
-        self.sectionlbx.delete(0, END)
+        self.section_lbx.delete(0, END)
         for section in self.pdata:
-            self.sectionlbx.insert(END, section.label)
+            self.section_lbx.insert(END, section.label)
 
     def poll(self):
         "Check if selection has changed"
-        now = self.sectionlbx.curselection()
+        now = self.section_lbx.curselection()
         if now != self.current:
             self.list_has_changed(now)
             self.current = now
@@ -95,8 +95,8 @@ class Application(Frame):
             self.text.insert(END, self.pdata[idx].text)
             self.text.config(state=DISABLED)
 
-    def copyall(self):
-        "Copy all text to the X clipboard"
+    def copy_section(self):
+        "Copy all text in section to the X clipboard"
         self.master.clipboard_clear()
         self.master.clipboard_append(self.text.get(1.0, END))
 
