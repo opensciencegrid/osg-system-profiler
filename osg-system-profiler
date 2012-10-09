@@ -108,7 +108,17 @@ if [ ! -w $dir ]; then
 fi
 
 log=$dir/"osg-profile.txt"
-rm -f $log
+if [ -e $log ]; then
+    backup_log_base=$log.bak
+    backup_log=$backup_log_base
+    let suffix=0
+    while [ -e $backup_log ]; do
+        let suffix=$suffix+1
+        backup_log=$backup_log_base.$suffix
+    done
+    echo "Backing up old log to $backup_log"
+    mv -f $log $backup_log
+fi
 
 echo "OSG System Profiler"
 echo "Analyzing..."
@@ -212,8 +222,9 @@ echo ""
 echo "Your system profile is located in:"
 echo "  $log"
 echo ""
-echo "If you are having problems, please mail a description of your problem and"
-echo "this file to vdt-support@opensciencegrid.org"
+echo "If you are having problems with your installation, please attach your system"
+echo "profile to your ticket at https://tickets.grid.iu.edu, or create a ticket if"
+echo "you do not already have one relating to the issue."
 echo ""
 
 exit 0
