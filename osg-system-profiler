@@ -108,6 +108,8 @@ if [ ! -w $dir ]; then
 fi
 
 log=$dir/"osg-profile.txt"
+# If there is already an osg-profile.txt, then back it up to osg-profile.txt.bak.
+# If that exists too, then use osg-profile.txt.bak.1, etc.
 if [ -e $log ]; then
     backup_log_base=$log.bak
     backup_log=$backup_log_base
@@ -183,6 +185,7 @@ list_directory "/etc/grid-security"
 check_cert "/etc/grid-security/hostcert.pem"
 check_cert "/etc/grid-security/http/httpcert.pem"
 check_cert "/etc/grid-security/rsv/rsvcert.pem"
+check_cert "/etc/grid-security/voms/vomscert.pem"
 
 run_cmd rpm -q --whatprovides grid-certificates
 list_directory "/etc/grid-security/certificates"
@@ -214,9 +217,20 @@ tail_log /var/log/bestman2/bestman2.log 200
 tail_log /var/log/bestman2/event.srm.log 200 
 
 
+# List all RPMs
+all_rpms=`rpm -qa | sort | uniq`
 echo "***** All RPMs " >> $log
-rpm -qa | sort                >> $log
-echo ""                       >> $log
+echo "$all_rpms"       >> $log
+echo ""                >> $log
+
+# Verify all RPMs; list modified ones
+echo "Verifying RPMs. This may take a while."
+for r in $all_rpms; do
+    rpm_v=`rpm --verify $r` || {
+        rpm_v_uniq=`echo "$rpm_v" | uniq`
+        echo -e "***** rpm --verify $r\n$rpm_v_uniq" >> $log
+    }
+done
 
 echo ""
 echo "Your system profile is located in:"
