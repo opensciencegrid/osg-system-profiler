@@ -108,19 +108,10 @@ if [ ! -w $dir ]; then
 fi
 
 log=$dir/"osg-profile.txt"
-# If there is already an osg-profile.txt, then back it up to osg-profile.txt.bak.
-# If that exists too, then use osg-profile.txt.bak.1, etc.
 if [ -e $log ]; then
-    backup_log_base=$log.bak
-    backup_log=$backup_log_base
-    let suffix=0
-    while [ -e $backup_log ]; do
-        let suffix=$suffix+1
-        backup_log=$backup_log_base.$suffix
-    done
-    echo "Backing up old log to $backup_log"
-    mv -f $log $backup_log
-fi
+    echo "Backing up old $log to $log.bak"
+    mv -f $log $log.bak
+fi    
 
 echo "OSG System Profiler"
 echo "Analyzing..."
