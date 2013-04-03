@@ -38,7 +38,7 @@ tail_log()
     echo "***** $LOG (last $LINES lines)" >> $log
     if [ -r $LOG ]; then
         tail --lines=$LINES $LOG          >> $log 2>&1
-    else 
+    else
         echo "$LOG doesn't exist"         >> $log
     fi
     echo ""                               >> $log
@@ -50,7 +50,7 @@ dump_file()
     echo "***** $FILE"                   >> $log
     if [ -r $FILE ]; then
         cat $FILE                        >> $log 2>&1
-    else 
+    else
         echo "$FILE doesn't exist"       >> $log
     fi
     echo ""                              >> $log
@@ -111,12 +111,28 @@ log=$dir/"osg-profile.txt"
 if [ -e $log ]; then
     echo "Backing up old $log to $log.bak"
     mv -f $log $log.bak
-fi    
+fi
+
+# Determine whether we are profiling a tarball install or an rpm install
+# based on whether or not $OSG_LOCATION is defined.
+
+# XXX This will falsely identify an OSG 1.2 install as a tarball install
+tarball_install=/bin/false
+rpm_install=/bin/true
+if [ "X$OSG_LOCATION" != X ]; then
+    tarball_install=/bin/true
+    rpm_install=/bin/false
+fi
 
 echo "OSG System Profiler"
-echo "Analyzing..."
+if $tarball_install; then
+    echo "Analyzing tarball install with OSG_LOCATION=$OSG_LOCATION..."
+    echo "OSG System Profile (tarball OSG_LOCATION=$OSG_LOCATION)" >> $log
+elif $rpm_install; then
+    echo "Analyzing RPM install..."
+    echo "OSG System Profile (RPM)" >> $log
+fi
 
-echo "OSG System Profile" >> $log
 echo Created at `date`    >> $log
 echo ""                   >> $log
 
@@ -138,18 +154,25 @@ run_cmd free
 dump_file "/proc/cpuinfo"
 
 run_cmd netstat -i
-run_cmd /sbin/iptables -vL
+
+if [ root = `whoami` ]; then
+    run_cmd /sbin/iptables -vL
+else
+    echo "***** No iptables info (user was not root)" >> $log
+fi
 
 dump_file "/etc/selinux/config"
 dump_file "/selinux/enforce"
 
 run_cmd osg-version
-rpm -qa | grep "^osg" | sort | xargs --no-run-if-empty -n 1 rpm -q >> $log
-echo "" >> $log
+if $rpm_install; then
+    rpm -qa | grep "^osg" | sort | xargs --no-run-if-empty -n 1 rpm -q >> $log
+    echo "" >> $log
 
-check_rpm "osg-configure"
-tail_log /var/log/osg/osg-configure.log 200
-dump_files_in_dir "/etc/osg/config.d"
+    check_rpm "osg-configure"
+    tail_log /var/log/osg/osg-configure.log 200
+    dump_files_in_dir "/etc/osg/config.d"
+fi
 
 check_rpm "perl"
 run_cmd perl -V
@@ -168,60 +191,80 @@ fi
 check_rpm openssl
 run_cmd openssl version
 
+if $tarball_install; then
+    dump_file $OSG_LOCATION/setup.sh
+    dump_file $OSG_LOCATION/setup.csh
+fi
+
 echo "***** Running: /usr/bin/env | sort" >> $log
 /usr/bin/env | sort                       >> $log
 echo ""                                   >> $log
 
-list_directory "/etc/grid-security"
-check_cert "/etc/grid-security/hostcert.pem"
-check_cert "/etc/grid-security/http/httpcert.pem"
-check_cert "/etc/grid-security/rsv/rsvcert.pem"
-check_cert "/etc/grid-security/voms/vomscert.pem"
+list_directory "${OSG_LOCATION-}/etc/grid-security"
+if $rpm_install; then
+    check_cert "/etc/grid-security/hostcert.pem"
+    check_cert "/etc/grid-security/http/httpcert.pem"
+    check_cert "/etc/grid-security/rsv/rsvcert.pem"
+    check_cert "/etc/grid-security/voms/vomscert.pem"
 
-run_cmd rpm -q --whatprovides grid-certificates
-list_directory "/etc/grid-security/certificates"
+    run_cmd rpm -q --whatprovides grid-certificates
+fi
 
-dump_file "/etc/grid-security/gsi-authz.conf"
-dump_file "/etc/lcmaps.db"
+list_directory "${OSG_LOCATION-}/etc/grid-security/certificates"
 
-check_rpm rpm
-check_rpm yum
+if $rpm_install; then
+    dump_file "/etc/grid-security/gsi-authz.conf"
+    dump_file "/etc/lcmaps.db"
 
-dump_file "/etc/yum.conf"
-echo "***** Questions about yum.conf to consider:"    >> $log
-echo "Are plugins enabled in yum.conf?"               >> $log
-echo "If not, could be getting wrong RPMs from EPEL." >> $log
-echo ""                                               >> $log
+    check_rpm rpm
+    check_rpm yum
+
+    dump_file "/etc/yum.conf"
+    echo "***** Questions about yum.conf to consider:"    >> $log
+    echo "Are plugins enabled in yum.conf?"               >> $log
+    echo "If not, could be getting wrong RPMs from EPEL." >> $log
+    echo ""                                               >> $log
+
+    dump_files_in_dir "/etc/yum.repos.d/"
+
+    dump_files_in_dir "/etc/globus/"
+
+    tail_log /var/log/globus-gatekeeper.log 200
+    tail_log /var/log/edg-mkgridmap.log 50
+    tail_log /var/log/glite-ce-monitor/glite-ce-monitor.log 200
+    tail_log /var/log/gip/gip.log 200
+    tail_log /var/log/gridftp.log 200
+    tail_log /var/log/gridftp-auth.log 200
+    tail_log /var/log/bestman2/bestman2.log 200
+    tail_log /var/log/bestman2/event.srm.log 200
 
 
-dump_files_in_dir "/etc/yum.repos.d/"
+    # List all RPMs and verify them. Put the listing and the verification in
+    # separate sections.  Verification only lists modified RPMs.
+    echo "Verifying RPMs. This may take a while."
 
-dump_files_in_dir "/etc/globus/"
+    all_rpms_log=$(mktemp $dir/allrpmslog.XXXXXX)
+    rpm_verify_log=$(mktemp $dir/rpmverifylog.XXXXXX)
 
-tail_log /var/log/globus-gatekeeper.log 200
-tail_log /var/log/edg-mkgridmap.log 50
-tail_log /var/log/glite-ce-monitor/glite-ce-monitor.log 200
-tail_log /var/log/gip/gip.log 200
-tail_log /var/log/gridftp.log 200
-tail_log /var/log/gridftp-auth.log 200
-tail_log /var/log/bestman2/bestman2.log 200 
-tail_log /var/log/bestman2/event.srm.log 200 
+    rpm -qa | sort | uniq | while read rpm_to_verify; do
+        echo $rpm_to_verify >> $all_rpms_log
 
+        # This awk trick prints out the header iff rpm --verify actually produces output
+        rpm --verify $rpm_to_verify 2> /dev/null | awk '
+            NR==1 { print "***** rpm --verify '$rpm_to_verify'" }
+            { print }' >> $rpm_verify_log
+    done
+    echo "***** All RPMs" >> $log
+    cat $all_rpms_log     >> $log
+    echo ""               >> $log
+    cat $rpm_verify_log   >> $log
 
-# List all RPMs
-all_rpms=`rpm -qa | sort | uniq`
-echo "***** All RPMs " >> $log
-echo "$all_rpms"       >> $log
-echo ""                >> $log
+    rm -f $all_rpms_log $rpm_verify_log
+fi
 
-# Verify all RPMs; list modified ones
-echo "Verifying RPMs. This may take a while."
-for r in $all_rpms; do
-    rpm_v=`rpm --verify $r` || {
-        rpm_v_uniq=`echo "$rpm_v" | uniq`
-        echo -e "***** rpm --verify $r\n$rpm_v_uniq" >> $log
-    }
-done
+if $tarball_install; then
+    dump_file "$OSG_LOCATION"/etc/fetch-crl?.conf
+fi
 
 echo ""
 echo "Your system profile is located in:"
