@@ -263,7 +263,7 @@ if $rpm_install; then
 fi
 
 if $tarball_install; then
-    dump_file "$OSG_LOCATION"/etc/fetch-crl?.conf
+    dump_file "$OSG_LOCATION"/etc/fetch-crl*.conf
 fi
 
 echo ""
