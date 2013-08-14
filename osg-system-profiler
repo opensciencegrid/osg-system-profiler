@@ -1,5 +1,17 @@
 #!/bin/sh
 
+realdir ()
+{
+    # print the canonical path of a directory, resolving symlinks in
+    # the way. On files, it will just echo back the argument.
+    if [ -d "$1" ]; then
+        ( cd "$1" && pwd -P )
+    else
+        echo "$1"
+        return 1
+    fi
+}
+
 check_rpm()
 {
     RPM=$1
@@ -60,10 +72,17 @@ dump_files_in_dir()
 {
     DIR=$1
     echo "***** Files in $DIR" >> $log
-    if [ -d $DIR ]; then
-        find $DIR -type f | sort | xargs -iX bash -c "echo File: X; cat X; echo" >> $log
+    if [ -L $DIR ]; then
+        REAL_DIR=$(realdir "$DIR")
+        echo "(symbolic link to $REAL_DIR)" >> $log
     else
-        echo "$DIR can't be read" >> $log
+        REAL_DIR=$DIR
+    fi
+
+    if [ -d $REAL_DIR ]; then
+        find $REAL_DIR -type f | sort | xargs -iX bash -c "echo File: X; cat X; echo" >> $log
+    else
+        echo "$REAL_DIR can't be read as a directory" >> $log
     fi
     echo "" >> $log
 }
@@ -72,13 +91,19 @@ list_directory()
 {
     DIR=$1
     echo "***** Contents of $DIR" >> $log
-    if [ -d $DIR ]; then
-        ls -laF $DIR              >> $log 2>&1
+    if [ -L $DIR ]; then
+        REAL_DIR=$(realdir "$DIR")
+        echo "(symbolic link to $REAL_DIR)" >> $log
     else
-        echo $DIR                 >> $log
+        REAL_DIR=$DIR
     fi
-    echo ""                       >> $log
 
+    if [ -d $REAL_DIR ]; then
+        ls -laF $REAL_DIR              >> $log 2>&1
+    else
+        echo $REAL_DIR                 >> $log
+    fi
+    echo ""                            >> $log
 }
 
 run_cmd()
@@ -117,11 +142,11 @@ fi
 # based on whether or not $OSG_LOCATION is defined.
 
 # XXX This will falsely identify an OSG 1.2 install as a tarball install
-tarball_install=/bin/false
-rpm_install=/bin/true
+tarball_install=false
+rpm_install=true
 if [ "X$OSG_LOCATION" != X ]; then
-    tarball_install=/bin/true
-    rpm_install=/bin/false
+    tarball_install=true
+    rpm_install=false
 fi
 
 echo "OSG System Profiler"
