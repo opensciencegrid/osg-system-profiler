@@ -14,7 +14,8 @@ VERSION := 1.0.11
 # ------------------------------------------------------------------------------
 
 BIN_DIR := usr/bin
-BIN_FILES := osg-system-profiler osg-system-profiler-viewer
+BIN_FILES := osg-system-profiler osg-system-profiler-viewer \
+	     osg-installed-versions
 
 DIST_FILES := $(BIN_FILES) Makefile
 
