@@ -1,0 +1,101 @@
+#!/bin/bash
+set -e
+
+### osg installed versions script ###
+
+usage () {
+  echo "Usage: $(basename "$0") [series|--all]"
+  echo
+  echo "Identifies any installed rpms that were part of an OSG release and"
+  echo "displays the latest OSG release that included that rpm, relative to"
+  echo "a given series (eg, 3.1, 3.2), or --all to display for each series."
+  echo "The default series is based on the version of osg-release installed,"
+  echo "or --all if osg-release is not installed."
+  exit
+}
+
+fail () { echo "$@" >&2; exit 1; }
+
+case $1 in
+       --help ) usage ;;
+  [3-9].[0-9] ) osg=$1 ;;
+        --all ) osg='' ;;
+           '' ) # what's our osg-release version / series ?
+                osg=$(rpm -q osg-release | awk -F- 'NF>2 {print $(NF-1)}') ;;
+            * ) usage ;;
+esac
+
+# work in temp dir
+
+tmpd=$(mktemp -d)
+trap 'rm -rf "$tmpd"' EXIT
+cd "$tmpd"
+
+# download txt files:
+
+RELEASE_INFO_URL=http://vdt.cs.wisc.edu/release-info/
+
+wget -nv -a wget.log -O- "$RELEASE_INFO_URL" \
+| perl -lne 'print $1 if /href="(\d[^"]*\.txt)"/' \
+| grep -e-rpms[-.] \
+| wget --base="$RELEASE_INFO_URL" -i- -nv -a wget.log || wget_fail=Y
+
+if [[ $wget_fail = Y ]] || ! ls | grep -q '\.txt$'; then
+  echo wget download failed:
+  cat wget.log
+  exit 1
+fi >&2
+
+# strip .rpm extension to make txt files match rpm -q output:
+
+perl -pi -e 's/\.rpm$//' *.txt
+
+# list series:
+
+ls *.txt | perl -pe 's{^(\d+\.\d+)\..*}{$1}' | sort -u > series.list
+
+# which series do we want to consider / display ?
+
+case $osg in
+  3.0 ) osg=3.1 ;;  # special case 3.0, since it used to mean 3.1
+   '' ) osg=$(fgrep -vx 3.0 series.list) ;;  # display each, except 3.0
+    * ) fgrep -qxe "$osg" series.list || fail "Series $osg not found" ;;
+esac
+
+# list all installed rpms
+
+rpm -qa > installed.rpms
+
+# show latest osg release vesion of each rpm per series;
+# prefer series, then series-upcoming, then other, then other-upcoming
+
+for series in $osg; do
+  { ls -vr $series.*[0-9]-rpms-*.txt > series.rpms
+    ls -vr $series.*[0-9]-upcoming-rpms-*.txt > series-upcoming.rpms
+    ls -vr *[0-9]-rpms-*.txt | fgrep -vxf series.rpms > other.rpms
+    ls -vr *[0-9]-upcoming-rpms-*.txt | fgrep -vxf series-upcoming.rpms \
+                                                  > other-upcoming.rpms
+  } 2>/dev/null || :
+  echo --OSG-$series--
+  cat series.rpms series-upcoming.rpms other.rpms other-upcoming.rpms \
+  | xargs fgrep -xHf installed.rpms \
+  | sed 's/-rpms-.*\.txt:/:/' \
+  | awk -F: '!p[$2]++ {print $1,$2}'
+done
+
+# lastly, detect any installed osg rpms not from a release (eg, from testing),
+# based on released osg package names
+
+unique  () { awk '!u[$0]++' "$@"; }
+vrstrip () { perl -lpe 's/(-[^-]+){2}$//' "$@"; }
+
+unique *.txt > osg.rpms
+vrstrip osg.rpms | unique > osg.pkgs
+fgrep -vxf osg.rpms installed.rpms > unreleased.rpms || :
+vrstrip unreleased.rpms | unique > unreleased.pkgs
+
+if fgrep -xf osg.pkgs unreleased.pkgs > osg-pkgs-unreleased.pkgs; then
+  echo "--NOT-FROM-A-RELEASE--"
+  xargs -a osg-pkgs-unreleased.pkgs rpm -q | fgrep -xf unreleased.rpms | sort
+fi
+
