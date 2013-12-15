@@ -70,14 +70,14 @@ rpm -qa > installed.rpms
 # prefer series, then series-upcoming, then other, then other-upcoming
 
 for series in $osg; do
-  { ls -vr $series.*[0-9]-rpms-*.txt > series.rpms
-    ls -vr $series.*[0-9]-upcoming-rpms-*.txt > series-upcoming.rpms
-    ls -vr *[0-9]-rpms-*.txt | fgrep -vxf series.rpms > other.rpms
-    ls -vr *[0-9]-upcoming-rpms-*.txt | fgrep -vxf series-upcoming.rpms \
-                                                  > other-upcoming.rpms
+  { ls -vr $series.*[0-9]-rpms-*.txt > series.txts
+    ls -vr $series.*[0-9]-upcoming-rpms-*.txt > series-upcoming.txts
+    ls -vr *[0-9]-rpms-*.txt | fgrep -vxf series.txts > other.txts
+    ls -vr *[0-9]-upcoming-rpms-*.txt | fgrep -vxf series-upcoming.txts \
+                                                  > other-upcoming.txts
   } 2>/dev/null || :
   echo --OSG-$series--
-  cat series.rpms series-upcoming.rpms other.rpms other-upcoming.rpms \
+  cat series.txts series-upcoming.txts other.txts other-upcoming.txts \
   | xargs fgrep -xHf installed.rpms \
   | sed 's/-rpms-.*\.txt:/:/' \
   | awk -F: '!p[$2]++ {print $1,$2}'
