@@ -80,7 +80,7 @@ for series in $osg; do
   cat series.txts series-upcoming.txts other.txts other-upcoming.txts \
   | xargs fgrep -xHf installed.rpms \
   | sed 's/-rpms-.*\.txt:/:/' \
-  | awk -F: '!p[$2]++ {print $1,$2}'
+  | awk -F: '!p[$2]++ {printf "%-7s %s\n", $1, $2}'
 done
 
 # lastly, detect any installed osg rpms not from a release (eg, from testing),
