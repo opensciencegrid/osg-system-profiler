@@ -4,55 +4,135 @@ set -e
 ### osg installed versions script ###
 
 usage () {
-  echo "Usage: $(basename "$0") [series|--all]"
+  if [[ $1 ]]; then
+    echo "$1" >&2
+    echo
+  fi
+  echo "Usage: $(basename "$0") [options] [series|--all]"
   echo
   echo "Identifies any installed rpms that were part of an OSG release and"
   echo "displays the latest OSG release that included that rpm, relative to"
   echo "a given series (eg, 3.1, 3.2), or --all to display for each series."
+  echo
   echo "The default series is based on the version of osg-release installed,"
   echo "or --all if osg-release is not installed."
+  echo
+  echo "Options:"
+  echo "  -r PATH  specify path to output log of 'rpm -qa'"
+  echo "  -p PATH  specify path to output log of 'osg-system-profiler'"
+  echo "  -t DIR   specify local dir with release info .txt files"
+  echo "  --afs    same as: -t $RELEASE_INFO_AFS_PATH"
   exit
 }
 
 fail () { echo "$@" >&2; exit 1; }
 
+RELEASE_INFO_URL=http://vdt.cs.wisc.edu/release-info/
+RELEASE_INFO_AFS_PATH=/p/vdt/public/html/release-info
+osg=''
+
+export LC_ALL=C
+
+while [[ $1 ]]; do
 case $1 in
-       --help ) usage ;;
-  [3-9].[0-9] ) osg=$1 ;;
-        --all ) osg='' ;;
-           '' ) # what's our osg-release version / series ?
-                osg=$(rpm -q osg-release | awk -F- 'NF>2 {print $(NF-1)}') ;;
-            * ) usage ;;
+  -r ) RPM_LOG=$2; shift 2 ;;
+  -p ) PROFILER_LOG=$2; shift 2 ;;
+  -t ) RELEASE_INFO_PATH=$2; shift 2 ;;
+  --afs ) RELEASE_INFO_PATH=$RELEASE_INFO_AFS_PATH; shift ;;
+  --all | [3-9].[0-9] ) osg=$1; shift ;;
+  --help ) usage ;;
+  * ) usage "Unrecognized option '$1'" ;;
 esac
+done
+
+if [[ $RPM_LOG && $PROFILER_LOG ]]; then
+  fail "options '-r' and '-p' are mutually exclusive..."
+fi
 
 # work in temp dir
 
+oldwd=$PWD
 tmpd=$(mktemp -d)
 trap 'rm -rf "$tmpd"' EXIT
 cd "$tmpd"
 
-# download txt files:
+checkpath () {
+  local path=${!1}
+  [[ $path = /* ]] || path=$oldwd/$path
+  [[ -e $path ]] || fail "'$path' does not exist"
+  eval "$1=\$path"
+}
+  
+# list all installed rpms
 
-RELEASE_INFO_URL=http://vdt.cs.wisc.edu/release-info/
+if [[ $RPM_LOG ]]; then
+  checkpath RPM_LOG
+  cat "$RPM_LOG"
+elif [[ $PROFILER_LOG ]]; then
+  checkpath PROFILER_LOG
+  awk '$0 == "***** All RPMs", $0 == ""' "$PROFILER_LOG" | sed '1d;$d'
+else
+  rpm -qa
+fi > installed.rpms
 
-wget -nv -a wget.log -O- "$RELEASE_INFO_URL" \
-| perl -lne 'print $1 if /href="(\d[^"]*\.txt)"/' \
-| grep -e-rpms[-.] \
-| wget --base="$RELEASE_INFO_URL" -i- -nv -a wget.log || wget_fail=Y
+rpm_query () {
+  # fake 'rpm -q pkg [...]' run against log file
+  perl -e '
+    my %pkgs = map {$_=>1} @ARGV;
+    for (<STDIN>) {
+      print if /^(.*)(?:-[^-\n]+){2}$/ && $pkgs{$1};
+    }
+  ' "$@" < installed.rpms
+}
 
-if [[ $wget_fail = Y ]] || ! ls | grep -q '\.txt$'; then
-  echo wget download failed:
-  cat wget.log
-  exit 1
-fi >&2
+download_txt_files () {
+  wget -nv -a wget.log -O- "$RELEASE_INFO_URL" \
+  | perl -lne 'print $1 if /href="(\d[^"]*\.txt)"/' \
+  | grep -e-rpms[-.] \
+  | wget --base="$RELEASE_INFO_URL" -i- -nv -a wget.log || wget_fail=Y
+
+  if [[ $wget_fail = Y ]] || ! ls | grep -q '\.txt$'; then
+    echo wget download failed:
+    cat wget.log
+    exit 1
+  fi >&2
+}
+
+if [[ $RELEASE_INFO_PATH ]]; then
+  checkpath RELEASE_INFO_PATH
+  cp "$RELEASE_INFO_PATH"/[0-9]*rpms*.txt .
+else
+  download_txt_files
+fi
 
 # strip .rpm extension to make txt files match rpm -q output:
 
 perl -pi -e 's/\.rpm$//' *.txt
 
+# strip .arch from everywhere if it doesn't seem to be used in the rpm list
+
+countarch () {
+  egrep "$@" -c '\.(i[3-6]86|x86_64|noarch)$' installed.rpms
+}
+
+if [[ $(countarch) -le $(countarch -v) ]]; then
+  perl -pi -e 's/\.(i[3-6]86|x86_64|noarch)$//' *.txt installed.rpms
+fi
+
 # list series:
 
 ls *.txt | perl -pe 's{^(\d+\.\d+)\..*}{$1}' | sort -u > series.list
+
+# which series is installed? (the version of osg-release)
+
+get_osg_series () {
+  rpm_query osg-release | awk -F- 'NF>2 {print $(NF-1)}'
+}
+
+case $osg in
+  --all ) osg='' ;;
+     '' ) osg=$(get_osg_series)
+esac
 
 # which series do we want to consider / display ?
 
@@ -61,10 +141,6 @@ case $osg in
    '' ) osg=$(fgrep -vx 3.0 series.list) ;;  # display each, except 3.0
     * ) fgrep -qxe "$osg" series.list || fail "Series $osg not found" ;;
 esac
-
-# list all installed rpms
-
-rpm -qa > installed.rpms
 
 # show latest osg release vesion of each rpm per series;
 # prefer series, then series-upcoming, then other, then other-upcoming
@@ -96,6 +172,6 @@ vrstrip unreleased.rpms | unique > unreleased.pkgs
 
 if fgrep -xf osg.pkgs unreleased.pkgs > osg-pkgs-unreleased.pkgs; then
   echo "--NOT-FROM-A-RELEASE--"
-  xargs -a osg-pkgs-unreleased.pkgs rpm -q | fgrep -xf unreleased.rpms | sort
+  rpm_query $(< osg-pkgs-unreleased.pkgs) | fgrep -xf unreleased.rpms | sort
 fi
 
