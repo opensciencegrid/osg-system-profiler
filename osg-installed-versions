@@ -70,7 +70,8 @@ if [[ $RPM_LOG ]]; then
   cat "$RPM_LOG"
 elif [[ $PROFILER_LOG ]]; then
   checkpath PROFILER_LOG
-  awk '$0 == "***** All RPMs", $0 == ""' "$PROFILER_LOG" | sed '1d;$d'
+  perl -lpe 's/\s*$//' "$PROFILER_LOG" \
+  | awk '$0 == "***** All RPMs", $0 == ""' | sed '1d;$d'
 else
   rpm -qa
 fi > installed.rpms
