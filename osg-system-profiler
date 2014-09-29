@@ -214,6 +214,35 @@ fi
 
 list_directory "${OSG_LOCATION-}/etc/grid-security/certificates"
 
+echo "***** Enabled gratia probe cronjobs" >> $log
+if [[ -x /etc/cron.d ]]; then
+    perl -n - /etc/cron.d/* >> $log <<"__END__"
+BEGIN {
+    our $pattern = qr{(?xm) ^ \s* [^#] .* gratia/ (?:probe/)? ([^/]+) /};
+    our $found = 0;
+    our $output = sprintf("%-20s %s\n", 'Probe', 'In File');
+}
+
+if ( $_ =~ $pattern ) {
+    $found = 1;
+    my $probename = $1;
+    my $shortfilename = $ARGV;
+    $shortfilename =~ s{^/etc/cron.d/}{};
+    $output .= sprintf("%-20s %s\n", $probename, $shortfilename);
+}
+
+END {
+    if ($found) {
+        print $output;
+    } else {
+        print "None\n"
+    }
+}
+__END__
+else
+    echo "Could not look in /etc/cron.d" >> $log
+fi
+
 if $rpm_install; then
     dump_file "/etc/grid-security/gsi-authz.conf"
     dump_file "/etc/lcmaps.db"
