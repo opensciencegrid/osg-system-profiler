@@ -283,7 +283,7 @@ if $rpm_install; then
     all_rpms_log=$(mktemp $dir/allrpmslog.XXXXXX)
     rpm_verify_log=$(mktemp $dir/rpmverifylog.XXXXXX)
 
-    rpm -qa | sort | uniq | while read rpm_to_verify; do
+    rpm -qa | sort -u | while read rpm_to_verify; do
         echo $rpm_to_verify >> $all_rpms_log
 
         # This awk trick prints out the header iff rpm --verify actually produces output
@@ -310,7 +310,7 @@ message ""
 message "If you are having problems with your installation, please send email to"
 message "vdt-support@opensciencegrid.org, or follow one of the other methods for"
 message "getting help listed at:"
-message "https://twiki.grid.iu.edu/bin/view/Documentation/Release3/HelpProcedure"
+message "  https://twiki.grid.iu.edu/bin/view/Documentation/Release3/HelpProcedure"
 message ""
 
 exit 0
