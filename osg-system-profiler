@@ -12,25 +12,6 @@ realdir ()
     fi
 }
 
-check_rpm()
-{
-    RPM=$1
-
-    echo "***** RPM: $RPM"                    >> $log
-    rpm -q $RPM                               >> $log 2>&1
-    if [ $? -eq 0 ]; then
-        rpm -q --verify $RPM                  >> $log 2>&1
-        if [ $? -eq 0 ]; then
-            echo "$RPM has not been modified" >> $log
-        fi
-        RC=0
-    else
-        RC=1
-    fi
-    echo ""                                   >> $log
-    return $RC
-}
-
 check_cert()
 {
     CERT=$1
@@ -194,15 +175,12 @@ if $rpm_install; then
     rpm -qa | grep "^osg" | sort | xargs --no-run-if-empty -n 1 rpm -q >> $log
     echo "" >> $log
 
-    check_rpm "osg-configure"
     tail_log /var/log/osg/osg-configure.log 200
     dump_files_in_dir "/etc/osg/config.d"
 fi
 
-check_rpm "perl"
 run_cmd perl -V
 
-check_rpm "python"
 if [ $? -eq 0 ]; then
     echo "***** Python information:"                                                    >> $log
     python -c "import sys; print 'Version: ' + sys.version"                             >> $log
@@ -213,7 +191,6 @@ if [ $? -eq 0 ]; then
     echo ""                                                                             >> $log
 fi
 
-check_rpm openssl
 run_cmd openssl version
 
 if $tarball_install; then
@@ -240,9 +217,6 @@ list_directory "${OSG_LOCATION-}/etc/grid-security/certificates"
 if $rpm_install; then
     dump_file "/etc/grid-security/gsi-authz.conf"
     dump_file "/etc/lcmaps.db"
-
-    check_rpm rpm
-    check_rpm yum
 
     dump_file "/etc/yum.conf"
     echo "***** Questions about yum.conf to consider:"    >> $log
