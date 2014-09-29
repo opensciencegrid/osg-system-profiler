@@ -1,4 +1,5 @@
-#!/bin/sh
+#!/bin/bash -p
+# ^ -p protects us from shellshock
 
 realdir ()
 {
@@ -15,76 +16,76 @@ realdir ()
 check_cert()
 {
     CERT=$1
-    echo "***** Certificate: $CERT"         >> $log
+    echo "***** Certificate: $CERT"
     if [ -r $CERT ]; then
-        openssl x509 -in $CERT -text -noout >> $log 2>&1
+        openssl x509 -in $CERT -text -noout
     else
-        echo "Can't read $CERT"             >> $log
+        echo "Can't read $CERT"
     fi
-    echo ""                                 >> $log
+    echo ""
 }
 
 tail_log()
 {
     LOG=$1
     LINES=$2
-    echo "***** $LOG (last $LINES lines)" >> $log
+    echo "***** $LOG (last $LINES lines)"
     if [ -r $LOG ]; then
-        tail --lines=$LINES $LOG          >> $log 2>&1
+        tail --lines=$LINES $LOG
     else
-        echo "$LOG doesn't exist"         >> $log
+        echo "$LOG doesn't exist"
     fi
-    echo ""                               >> $log
+    echo ""
 }
 
 dump_file()
 {
     FILE=$1
-    echo "***** $FILE"                   >> $log
+    echo "***** $FILE"
     if [ -r $FILE ]; then
-        cat $FILE                        >> $log 2>&1
+        cat $FILE
     else
-        echo "$FILE doesn't exist"       >> $log
+        echo "$FILE doesn't exist"
     fi
-    echo ""                              >> $log
+    echo ""
 }
 
 dump_files_in_dir()
 {
     DIR=$1
-    echo "***** Files in $DIR" >> $log
+    echo "***** Files in $DIR"
     if [ -L $DIR ]; then
         REAL_DIR=$(realdir "$DIR")
-        echo "(symbolic link to $REAL_DIR)" >> $log
+        echo "(symbolic link to $REAL_DIR)"
     else
         REAL_DIR=$DIR
     fi
 
     if [ -d $REAL_DIR ]; then
-        find $REAL_DIR -type f | sort | xargs -iX bash -c "echo File: X; cat X; echo" >> $log
+        find $REAL_DIR -type f | sort | xargs -iX bash -c "echo File: X; cat X; echo"
     else
-        echo "$REAL_DIR can't be read as a directory" >> $log
+        echo "$REAL_DIR can't be read as a directory"
     fi
-    echo "" >> $log
+    echo ""
 }
 
 list_directory()
 {
     DIR=$1
-    echo "***** Contents of $DIR" >> $log
+    echo "***** Contents of $DIR"
     if [ -L $DIR ]; then
         REAL_DIR=$(realdir "$DIR")
-        echo "(symbolic link to $REAL_DIR)" >> $log
+        echo "(symbolic link to $REAL_DIR)"
     else
         REAL_DIR=$DIR
     fi
 
     if [ -d $REAL_DIR ]; then
-        ls -laF $REAL_DIR              >> $log 2>&1
+        ls -laF $REAL_DIR
     else
-        echo $REAL_DIR                 >> $log
+        echo $REAL_DIR
     fi
-    echo ""                            >> $log
+    echo ""
 }
 
 run_cmd()
@@ -93,15 +94,19 @@ run_cmd()
     shift
     OPTIONS=$@
 
-    echo "***** Running: $CMD $OPTIONS"         >> $log
+    echo "***** Running: $CMD $OPTIONS"
     which $CMD > /dev/null 2>&1
     if [ $? -eq 0 ]; then
-        $CMD $OPTIONS                           >> $log 2>&1
+        $CMD $OPTIONS
     else
-        echo $?                                 >> $log
-        echo "Cannot find $CMD."                >> $log
+        echo $?
+        echo "Cannot find $CMD."
     fi
-    echo ""                                     >> $log
+    echo ""
+}
+
+message() {
+    echo "$@" >&3
 }
 
 dir=`pwd`
@@ -119,35 +124,39 @@ if [ -e $log ]; then
     mv -f $log $log.bak
 fi
 
+# Redirect remaining output to $log; send any status messages (via the message
+# function) to console
+exec 3>&2 > "$log" 2>&1
+
 # Determine whether we are profiling a tarball install or an rpm install
 # based on whether or not $OSG_LOCATION is defined.
 
 # XXX This will falsely identify an OSG 1.2 install as a tarball install
 tarball_install=false
 rpm_install=true
-if [ "X$OSG_LOCATION" != X ]; then
+if [[ -n $OSG_LOCATION ]]; then
     tarball_install=true
     rpm_install=false
 fi
 
-echo "OSG System Profiler"
+message "OSG System Profiler"
 if $tarball_install; then
-    echo "Analyzing tarball install with OSG_LOCATION=$OSG_LOCATION..."
-    echo "OSG System Profile (tarball OSG_LOCATION=$OSG_LOCATION)" >> $log
+    message "Analyzing tarball install with OSG_LOCATION=$OSG_LOCATION..."
+    echo "OSG System Profile (tarball OSG_LOCATION=$OSG_LOCATION)"
 elif $rpm_install; then
-    echo "Analyzing RPM install..."
-    echo "OSG System Profile (RPM)" >> $log
+    message "Analyzing RPM install..."
+    echo "OSG System Profile (RPM)"
 fi
 
-echo Created at `date`    >> $log
-echo ""                   >> $log
+echo Created at `date`
+echo ""
 
 run_cmd hostname
 run_cmd uname -a
 
-echo "***** Kernel RPMs"                                              >> $log
-rpm -qa | grep "^kernel" | sort | xargs --no-run-if-empty -n 1 -iX bash -c "rpm -q X; rpm -V X" >> $log
-echo ""                                                               >> $log
+echo "***** Kernel RPMs"
+rpm -qa | grep "^kernel" | sort | xargs --no-run-if-empty -n 1 -iX bash -c "rpm -q X; rpm -V X"
+echo ""
 
 dump_file "/etc/issue"
 dump_file "/etc/redhat-release"
@@ -164,7 +173,7 @@ run_cmd netstat -i
 if [ root = `whoami` ]; then
     run_cmd /sbin/iptables -vL
 else
-    echo "***** No iptables info (user was not root)" >> $log
+    echo "***** No iptables info (user was not root)"
 fi
 
 dump_file "/etc/selinux/config"
@@ -172,8 +181,8 @@ dump_file "/selinux/enforce"
 
 run_cmd osg-version
 if $rpm_install; then
-    rpm -qa | grep "^osg" | sort | xargs --no-run-if-empty -n 1 rpm -q >> $log
-    echo "" >> $log
+    rpm -qa | grep "^osg" | sort | xargs --no-run-if-empty -n 1 rpm -q
+    echo ""
 
     tail_log /var/log/osg/osg-configure.log 200
     dump_files_in_dir "/etc/osg/config.d"
@@ -182,13 +191,13 @@ fi
 run_cmd perl -V
 
 if [ $? -eq 0 ]; then
-    echo "***** Python information:"                                                    >> $log
-    python -c "import sys; print 'Version: ' + sys.version"                             >> $log
-    python -c "import sys; print 'Executable: ' + sys.executable"                       >> $log
-    python -c "import sys; print 'Prefix: ' + sys.prefix"                               >> $log
-    python -c 'import platform; print "Architecture: ",; print platform.architecture()' >> $log
-    python -c "import sys; print 'Search paths: ',; print  sys.path"                    >> $log
-    echo ""                                                                             >> $log
+    echo "***** Python information:"
+    python -c "import sys; print 'Version: ' + sys.version"
+    python -c "import sys; print 'Executable: ' + sys.executable"
+    python -c "import sys; print 'Prefix: ' + sys.prefix"
+    python -c 'import platform; print "Architecture: ",; print platform.architecture()'
+    python -c "import sys; print 'Search paths: ',; print  sys.path"
+    echo ""
 fi
 
 run_cmd openssl version
@@ -198,9 +207,9 @@ if $tarball_install; then
     dump_file $OSG_LOCATION/setup.csh
 fi
 
-echo "***** Running: /usr/bin/env | sort" >> $log
-/usr/bin/env | sort                       >> $log
-echo ""                                   >> $log
+echo "***** Running: /usr/bin/env | sort"
+/usr/bin/env | sort
+echo ""
 
 list_directory "${OSG_LOCATION-}/etc/grid-security"
 if $rpm_install; then
@@ -214,9 +223,9 @@ fi
 
 list_directory "${OSG_LOCATION-}/etc/grid-security/certificates"
 
-echo "***** Enabled gratia probe cronjobs" >> $log
+echo "***** Enabled gratia probe cronjobs"
 if [[ -x /etc/cron.d ]]; then
-    perl -n - /etc/cron.d/* >> $log <<"__END__"
+    perl -n - /etc/cron.d/* <<"__END__"
 BEGIN {
     our $pattern = qr{(?xm) ^ \s* [^#] .* gratia/ (?:probe/)? ([^/]+) /};
     our $found = 0;
@@ -240,7 +249,7 @@ END {
 }
 __END__
 else
-    echo "Could not look in /etc/cron.d" >> $log
+    echo "Could not look in /etc/cron.d"
 fi
 
 if $rpm_install; then
@@ -248,10 +257,10 @@ if $rpm_install; then
     dump_file "/etc/lcmaps.db"
 
     dump_file "/etc/yum.conf"
-    echo "***** Questions about yum.conf to consider:"    >> $log
-    echo "Are plugins enabled in yum.conf?"               >> $log
-    echo "If not, could be getting wrong RPMs from EPEL." >> $log
-    echo ""                                               >> $log
+    echo "***** Questions about yum.conf to consider:"
+    echo "Are plugins enabled in yum.conf?"
+    echo "If not, could be getting wrong RPMs from EPEL."
+    echo ""
 
     dump_files_in_dir "/etc/yum.repos.d/"
 
@@ -269,7 +278,7 @@ if $rpm_install; then
 
     # List all RPMs and verify them. Put the listing and the verification in
     # separate sections.  Verification only lists modified RPMs.
-    echo "Verifying RPMs. This may take a while."
+    message "Verifying RPMs. This may take a while."
 
     all_rpms_log=$(mktemp $dir/allrpmslog.XXXXXX)
     rpm_verify_log=$(mktemp $dir/rpmverifylog.XXXXXX)
@@ -282,10 +291,10 @@ if $rpm_install; then
             NR==1 { print "***** rpm --verify '$rpm_to_verify'" }
             { print }' >> $rpm_verify_log
     done
-    echo "***** All RPMs" >> $log
-    cat $all_rpms_log     >> $log
-    echo ""               >> $log
-    cat $rpm_verify_log   >> $log
+    echo "***** All RPMs"
+    cat $all_rpms_log
+    echo ""
+    cat $rpm_verify_log
 
     rm -f $all_rpms_log $rpm_verify_log
 fi
@@ -294,15 +303,15 @@ if $tarball_install; then
     dump_file "$OSG_LOCATION"/etc/fetch-crl*.conf
 fi
 
-echo ""
-echo "Your system profile is located in:"
-echo "  $log"
-echo ""
-echo "If you are having problems with your installation, please send email to"
-echo "vdt-support@opensciencegrid.org, or follow one of the other methods for"
-echo "getting help listed at:"
-echo "https://twiki.grid.iu.edu/bin/view/Documentation/Release3/HelpProcedure"
-echo ""
+message ""
+message "Your system profile is located in:"
+message "  $log"
+message ""
+message "If you are having problems with your installation, please send email to"
+message "vdt-support@opensciencegrid.org, or follow one of the other methods for"
+message "getting help listed at:"
+message "https://twiki.grid.iu.edu/bin/view/Documentation/Release3/HelpProcedure"
+message ""
 
 exit 0
 
