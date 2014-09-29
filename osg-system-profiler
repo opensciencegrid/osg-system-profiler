@@ -190,15 +190,13 @@ fi
 
 run_cmd perl -V
 
-if [ $? -eq 0 ]; then
-    echo "***** Python information:"
-    python -c "import sys; print 'Version: ' + sys.version"
-    python -c "import sys; print 'Executable: ' + sys.executable"
-    python -c "import sys; print 'Prefix: ' + sys.prefix"
-    python -c 'import platform; print "Architecture: ",; print platform.architecture()'
-    python -c "import sys; print 'Search paths: ',; print  sys.path"
-    echo ""
-fi
+echo "***** Python information:"
+python -c "import sys; print 'Version: ' + sys.version"
+python -c "import sys; print 'Executable: ' + sys.executable"
+python -c "import sys; print 'Prefix: ' + sys.prefix"
+python -c 'import platform; print "Architecture: ",; print platform.architecture()'
+python -c "import sys; print 'Search paths: ',; print  sys.path"
+echo ""
 
 run_cmd openssl version
 
