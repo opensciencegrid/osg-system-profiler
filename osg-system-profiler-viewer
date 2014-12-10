@@ -3,8 +3,16 @@
 
 from Tkinter import *
 import ScrolledText
+import os
 import re
+import subprocess
 import sys
+
+
+
+INSTALLED_VERSIONS_SCRIPT = 'osg-installed-versions'
+RELEASE_INFO_PATH = '/p/vdt/public/html/release-info'
+
 
 class Section(object):
     "A section from the profiler output"
@@ -57,7 +65,27 @@ def load_pdata_from_file(filename):
     except IOError, e:
         print >> sys.stderr, "Error reading file %s: %s" % (filename, e.strerror)
         sys.exit(1)
-    
+
+
+def get_installed_versions(profile, script=None):
+    env = dict(os.environ)
+    if script is None:
+        env['PATH'] = env['PATH'] + ':' + os.path.dirname(sys.argv[0])
+        script = INSTALLED_VERSIONS_SCRIPT
+    output = ''
+    cmd = [script, '-p', profile]
+    if os.path.exists(RELEASE_INFO_PATH):
+        cmd.append('--afs')
+    try:
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, env=env)
+        output = proc.communicate()[0]
+    except OSError, err:
+        return Section('Error getting installed versions', str(err))
+    if output:
+        return Section('Installed versions', output)
+    else:
+        return Section('Installed versions (empty)', output)
+
 
 class Application(Frame):
     "The GUI"
@@ -125,15 +153,16 @@ class Application(Frame):
 
 
 
-            
-
-
 def main():
     if len(sys.argv) < 2:
         print "Usage: %s <FILENAME>" % sys.argv[0]
         print "View the output of osg-system-profiler"
         sys.exit(2)
-    pdata = load_pdata_from_file(sys.argv[1])
+    profile = sys.argv[1]
+    pdata = load_pdata_from_file(profile)
+    installed_versions = get_installed_versions(profile)
+    if installed_versions:
+        pdata.append(installed_versions)
     root = Tk()
     root.wm_title("osg-system-profiler viewer")
     app = Application(root, pdata)
