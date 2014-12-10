@@ -154,10 +154,6 @@ echo ""
 run_cmd hostname
 run_cmd uname -a
 
-echo "***** Kernel RPMs"
-rpm -qa | grep "^kernel" | sort | xargs --no-run-if-empty -n 1 -iX bash -c "rpm -q X; rpm -V X"
-echo ""
-
 dump_file "/etc/issue"
 dump_file "/etc/redhat-release"
 dump_file "/etc/nsswitch.conf"
@@ -255,10 +251,6 @@ if $rpm_install; then
     dump_file "/etc/lcmaps.db"
 
     dump_file "/etc/yum.conf"
-    echo "***** Questions about yum.conf to consider:"
-    echo "Are plugins enabled in yum.conf?"
-    echo "If not, could be getting wrong RPMs from EPEL."
-    echo ""
 
     dump_files_in_dir "/etc/yum.repos.d/"
 
