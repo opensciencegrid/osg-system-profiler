@@ -8,9 +8,14 @@ import sys
 
 class Section(object):
     "A section from the profiler output"
-    def __init__(self, label, text):
+    def __init__(self, label, text=""):
         self.label = label
         self.text = text
+
+
+def is_empty(text):
+    "True if a block of text is empty except for whitespace"
+    return not re.search('\S', text)
 
 def load_pdata_from_file(filename):
     "Load profiler data from filename and return as a list of Section objects"
@@ -18,15 +23,33 @@ def load_pdata_from_file(filename):
     try:
         fh = open(filename, 'r')
         try:
-            section = Section("TOP", "")
+            section = Section("TOP")
+            in_files_section = False
+            in_file = False
             for line in fh:
                 section_match = re.match(r'[*]{5}\s*(.+?)\s*$', line)
+                file_match = re.match(r'File:\s*(.+?)\s*$', line)
 
-                if section_match:
+                end_of_section = section_match or (in_files_section and file_match)
+                if end_of_section:
+                    if is_empty(section.text):
+                        if in_file:
+                            section.label += ' (empty)'
+                        else:
+                            section.label += ' (no text)'
                     pdata.append(section)
-                    section = Section(section_match.group(1), "")
+
+                    if section_match:
+                        section_name = section_match.group(1)
+                        section = Section(section_name)
+                        in_files_section = section_name.startswith('Files in')
+                        in_file = False
+                    elif in_files_section and file_match:
+                        section = Section(file_match.group(1))
+                        in_file = True
                 else:
                     section.text += line
+
             pdata.append(section)
             return pdata
         finally:
