@@ -29,11 +29,11 @@ tail_log()
 {
     LOG=$1
     LINES=$2
-    echo "***** $LOG (last $LINES lines)"
     if [ -r $LOG ]; then
+        echo "***** $LOG (last $LINES lines)"
         tail --lines=$LINES $LOG
     else
-        echo "$LOG doesn't exist"
+        echo "***** $LOG (doesn't exist)"
     fi
     echo ""
 }
@@ -41,11 +41,11 @@ tail_log()
 dump_file()
 {
     FILE=$1
-    echo "***** $FILE"
     if [ -r $FILE ]; then
+        echo "***** $FILE"
         cat $FILE
     else
-        echo "$FILE doesn't exist"
+        echo "***** $FILE (doesn't exist)"
     fi
     echo ""
 }
