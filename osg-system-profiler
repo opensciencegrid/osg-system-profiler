@@ -246,7 +246,14 @@ else
     echo "Could not look in /etc/cron.d"
 fi
 
+
 if $rpm_install; then
+    PATH=$PATH:/usr/libexec/osg-system-profiler
+    if type -f gratia-pbs-lsf-config-check &>/dev/null && rpm -q gratia-probe-pbs-lsf &>/dev/null; then
+        echo "***** Gratia PBS/LSF config check"
+        gratia-pbs-lsf-config-check
+    fi
+
     dump_file "/etc/grid-security/gsi-authz.conf"
     dump_file "/etc/lcmaps.db"
 
@@ -264,7 +271,6 @@ if $rpm_install; then
     tail_log /var/log/gridftp-auth.log 200
     tail_log /var/log/bestman2/bestman2.log 200
     tail_log /var/log/bestman2/event.srm.log 200
-
 
     # List all RPMs and verify them. Put the listing and the verification in
     # separate sections.  Verification only lists modified RPMs.
