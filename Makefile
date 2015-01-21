@@ -39,7 +39,7 @@ UPSTREAM_DIR := $(UPSTREAM)/$(PACKAGE)/$(VERSION)
 
 _default:
 	@echo "There is no default target; choose one of the following:"
-	@echo "make install DESTDIR=path     -- install files to path"
+	@echo "make install [DESTDIR=path]   -- install files to path"
 	@echo "make dist                     -- make a distribution source tarball"
 	@echo "make upstream [UPSTREAM=path] -- install source tarball to upstream cache rooted at path"
 
@@ -51,15 +51,10 @@ ifneq ($(strip $(DIST_DIR_PREFIX)),) # avoid evil
 endif
 
 install:
-ifeq ($(strip $(DESTDIR)),)
-	@echo "Error: make install requires DESTDIR to be defined"
-else
 	mkdir -p $(DESTDIR)/$(BIN_DIR)
 	install -p -m 0755 $(BIN_FILES) $(DESTDIR)/$(BIN_DIR)
-
 	mkdir -p $(DESTDIR)/$(LIBEXEC_DIR)
 	install -p -m 0755 $(LIBEXEC_FILES) $(DESTDIR)/$(LIBEXEC_DIR)
-endif
 
 
 dist: $(TARBALL_NAME)
