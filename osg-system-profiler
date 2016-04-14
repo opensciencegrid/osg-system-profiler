@@ -175,6 +175,15 @@ fi
 dump_file "/etc/selinux/config"
 dump_file "/selinux/enforce"
 
+
+if which selinuxenabled &>/dev/null && selinuxenabled; then
+    echo "***** SELinux audit log"
+    # Change the section marker of the sealert output to avoid clashing with
+    # our section markers.
+    sealert -a /var/log/audit/audit.log | sed -e 's/^[*][*][*][*][*]/******/'
+fi
+
+
 run_cmd osg-version
 if $rpm_install; then
     rpm -qa | grep "^osg" | sort | xargs --no-run-if-empty -n 1 rpm -q
