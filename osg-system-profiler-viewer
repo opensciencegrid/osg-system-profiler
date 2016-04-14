@@ -33,7 +33,7 @@ def load_pdata_from_handle(fh):
     in_files_section = False
     in_file = False
     for line in fh:
-        section_match = re.match(r'[*]{5}\s*(.+?)\s*$', line)
+        section_match = re.match(r'[*]{5}\s+(.+?)\s*$', line)
         file_match = re.match(r'File:\s*(.+?)\s*$', line)
 
         end_of_section = section_match or (in_files_section and file_match)
@@ -92,7 +92,10 @@ def get_installed_versions(profile, script=None):
         env['PATH'] = env['PATH'] + ':' + os.path.dirname(sys.argv[0])
         script = INSTALLED_VERSIONS_SCRIPT
     output = ''
-    cmd = [script, '-p', profile]
+    if '://' not in profile:
+        cmd = [script, '-p', profile]
+    else:
+        cmd = [script, '-P', profile]
     if os.path.exists(RELEASE_INFO_PATH):
         cmd.append('--afs')
     try:
