@@ -37,6 +37,7 @@ while [[ $1 ]]; do
 case $1 in
   -r ) RPM_LOG=$2; shift 2 ;;
   -p ) PROFILER_LOG=$2; shift 2 ;;
+  -P ) PROFILER_URL=$2; shift 2 ;;
   -t ) RELEASE_INFO_PATH=$2; shift 2 ;;
   --afs ) RELEASE_INFO_PATH=$RELEASE_INFO_AFS_PATH; shift ;;
   --all | [3-9].[0-9] ) osg=$1; shift ;;
@@ -47,6 +48,10 @@ done
 
 if [[ $RPM_LOG && $PROFILER_LOG ]]; then
   fail "options '-r' and '-p' are mutually exclusive..."
+elif [[ $RPM_LOG && $PROFILER_URL ]]; then
+  fail "options '-r' and '-P' are mutually exclusive..."
+elif [[ $PROFILER_LOG && $PROFILER_URL ]]; then
+  fail "options '-p' and '-P' are mutually exclusive..."
 fi
 
 # work in temp dir
@@ -62,7 +67,12 @@ checkpath () {
   [[ -e $path ]] || fail "'$path' does not exist"
   eval "$1=\$path"
 }
-  
+
+get_rpms_from_profiler () {
+  perl -lpe 's/\s*$//' \
+  | awk '$0 == "***** All RPMs", $0 == ""' | sed '1d;$d'
+}
+
 # list all installed rpms
 
 if [[ $RPM_LOG ]]; then
@@ -70,8 +80,16 @@ if [[ $RPM_LOG ]]; then
   cat "$RPM_LOG"
 elif [[ $PROFILER_LOG ]]; then
   checkpath PROFILER_LOG
-  perl -lpe 's/\s*$//' "$PROFILER_LOG" \
-  | awk '$0 == "***** All RPMs", $0 == ""' | sed '1d;$d'
+  get_rpms_from_profiler <"$PROFILER_LOG"
+elif [[ $PROFILER_URL ]]; then
+  wget -nv -a wget.log -O- "$PROFILER_URL" \
+  | get_rpms_from_profiler || wget_fail=Y
+
+  if [[ $wget_fail = Y ]]; then
+    echo "wget download of '$PROFILER_URL' failed:"
+    cat wget.log
+    exit 1
+  fi >&2
 else
   rpm -qa
 fi > installed.rpms

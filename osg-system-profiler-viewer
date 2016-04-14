@@ -7,6 +7,7 @@ import os
 import re
 import subprocess
 import sys
+import urllib2
 
 
 
@@ -25,45 +26,63 @@ def is_empty(text):
     "True if a block of text is empty except for whitespace"
     return not re.search('\S', text)
 
+
+def load_pdata_from_handle(fh):
+    pdata = []
+    section = Section("TOP")
+    in_files_section = False
+    in_file = False
+    for line in fh:
+        section_match = re.match(r'[*]{5}\s+(.+?)\s*$', line)
+        file_match = re.match(r'File:\s*(.+?)\s*$', line)
+
+        end_of_section = section_match or (in_files_section and file_match)
+        if end_of_section:
+            if is_empty(section.text):
+                if in_file:
+                    section.label += ' (empty)'
+                else:
+                    section.label += ' (no text)'
+            pdata.append(section)
+
+            if section_match:
+                section_name = section_match.group(1)
+                section = Section(section_name)
+                in_files_section = section_name.startswith('Files in')
+                in_file = False
+            elif in_files_section and file_match:
+                section = Section(file_match.group(1))
+                in_file = True
+        else:
+            section.text += line
+
+    pdata.append(section)
+    return pdata
+
+
 def load_pdata_from_file(filename):
     "Load profiler data from filename and return as a list of Section objects"
     pdata = []
     try:
         fh = open(filename, 'r')
         try:
-            section = Section("TOP")
-            in_files_section = False
-            in_file = False
-            for line in fh:
-                section_match = re.match(r'[*]{5}\s*(.+?)\s*$', line)
-                file_match = re.match(r'File:\s*(.+?)\s*$', line)
-
-                end_of_section = section_match or (in_files_section and file_match)
-                if end_of_section:
-                    if is_empty(section.text):
-                        if in_file:
-                            section.label += ' (empty)'
-                        else:
-                            section.label += ' (no text)'
-                    pdata.append(section)
-
-                    if section_match:
-                        section_name = section_match.group(1)
-                        section = Section(section_name)
-                        in_files_section = section_name.startswith('Files in')
-                        in_file = False
-                    elif in_files_section and file_match:
-                        section = Section(file_match.group(1))
-                        in_file = True
-                else:
-                    section.text += line
-
-            pdata.append(section)
-            return pdata
+            return load_pdata_from_handle(fh)
         finally:
             fh.close()
     except IOError, e:
         print >> sys.stderr, "Error reading file %s: %s" % (filename, e.strerror)
+        sys.exit(1)
+
+
+def load_pdata_from_url(url):
+    try:
+        urlhandle = urllib2.urlopen(url)
+        try:
+            return load_pdata_from_handle(urlhandle)
+        finally:
+            urlhandle.close()
+    except urllib2.URLError, e:
+        print >> sys.stderr, "Error reading URL %s: %s" % (url, e.strerror)
         sys.exit(1)
 
 
@@ -73,7 +92,10 @@ def get_installed_versions(profile, script=None):
         env['PATH'] = env['PATH'] + ':' + os.path.dirname(sys.argv[0])
         script = INSTALLED_VERSIONS_SCRIPT
     output = ''
-    cmd = [script, '-p', profile]
+    if '://' not in profile:
+        cmd = [script, '-p', profile]
+    else:
+        cmd = [script, '-P', profile]
     if os.path.exists(RELEASE_INFO_PATH):
         cmd.append('--afs')
     try:
@@ -152,14 +174,16 @@ class Application(Frame):
         self.master.clipboard_append(self.text.get(1.0, END))
 
 
-
 def main():
     if len(sys.argv) < 2:
-        print "Usage: %s <FILENAME>" % sys.argv[0]
+        print "Usage: %s <FILENAME OR URL>" % sys.argv[0]
         print "View the output of osg-system-profiler"
         sys.exit(2)
     profile = sys.argv[1]
-    pdata = load_pdata_from_file(profile)
+    if '://' not in profile:
+        pdata = load_pdata_from_file(profile)
+    else:
+        pdata = load_pdata_from_url(profile)
     installed_versions = get_installed_versions(profile)
     if installed_versions:
         pdata.append(installed_versions)
@@ -167,6 +191,7 @@ def main():
     root.wm_title("osg-system-profiler viewer")
     app = Application(root, pdata)
     root.mainloop()
+
 
 if __name__ == '__main__':
     main()
