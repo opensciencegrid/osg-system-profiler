@@ -22,6 +22,8 @@ usage () {
   echo "  -p PATH  specify path to output log of 'osg-system-profiler'"
   echo "  -t DIR   specify local dir with release info .txt files"
   echo "  --afs    same as: -t $RELEASE_INFO_AFS_PATH"
+  echo
+  echo "PATH arguments specified as a URL will be downloaded automatically."
   exit
 }
 
@@ -58,7 +60,16 @@ cd "$tmpd"
 
 checkpath () {
   local path=${!1}
-  [[ $path = /* ]] || path=$oldwd/$path
+  case $path in
+       /* ) ;;  # OK, fully qualified
+    *://* ) if ! wget -nv -a wget.log -O profile.txt "$path"; then
+              echo wget download failed:
+              cat wget.log
+              exit 1
+            fi >&2
+            path=profile.txt ;;
+        * ) path=$oldwd/$path ;;
+  esac
   [[ -e $path ]] || fail "'$path' does not exist"
   eval "$1=\$path"
 }
