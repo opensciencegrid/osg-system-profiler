@@ -74,9 +74,6 @@ dump_files_in_dir()
     if [ -d $REAL_DIR ]; then
         find $REAL_DIR \
             ! -name 'osg-profile.txt*' \
-            ! -name '*.conf'           \
-            ! -name '*.rpmnew'         \
-            ! -name '*.rpmsave'        \
             -type f -print0 | sort -z | xargs -0 bash -c '
                 for X in "$@"; do
                     echo "File: $X"; cat "$X"; echo
@@ -329,7 +326,7 @@ fi
 
 log=$dir/"osg-profile.txt"
 if [ -e $log ]; then
-    echo "Backing up old $log to $log.bak"
+    message "Backing up old $log to $log.bak"
     mv -f "$log" "$log.bak"
 fi
 mv -f "$tmplog" "$log"
