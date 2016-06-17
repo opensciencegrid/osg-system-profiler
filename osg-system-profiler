@@ -72,7 +72,12 @@ dump_files_in_dir()
     fi
 
     if [ -d $REAL_DIR ]; then
-        find $REAL_DIR -type f | sort | xargs -iX bash -c "echo File: X; cat X; echo"
+        find $REAL_DIR \
+            ! -name 'osg-profile.txt*' \
+            ! -name '*.conf'           \
+            ! -name '*.rpmnew'         \
+            ! -name '*.rpmsave'        \
+            -type f | sort | xargs -iX bash -c "echo File: X; cat X; echo"
     else
         echo "$REAL_DIR can't be read as a directory"
     fi
