@@ -62,12 +62,12 @@ checkpath () {
   local path=${!1}
   case $path in
        /* ) ;;  # OK, fully qualified
-    *://* ) if ! wget -nv -a wget.log -O profile.txt "$path"; then
+    *://* ) if ! wget -nv -a wget.log -O profile "$path"; then
               echo wget download failed:
               cat wget.log
               exit 1
             fi >&2
-            path=profile.txt ;;
+            path=profile ;;
         * ) path=$oldwd/$path ;;
   esac
   [[ -e $path ]] || fail "'$path' does not exist"
