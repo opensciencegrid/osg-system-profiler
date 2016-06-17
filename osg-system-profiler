@@ -77,7 +77,10 @@ dump_files_in_dir()
             ! -name '*.conf'           \
             ! -name '*.rpmnew'         \
             ! -name '*.rpmsave'        \
-            -type f | sort | xargs -iX bash -c "echo File: X; cat X; echo"
+            -type f -print0 | sort -z | xargs -0 bash -c '
+                for X in "$@"; do
+                    echo "File: $X"; cat "$X"; echo
+                done' -
     else
         echo "$REAL_DIR can't be read as a directory"
     fi
