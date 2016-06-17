@@ -72,7 +72,15 @@ dump_files_in_dir()
     fi
 
     if [ -d $REAL_DIR ]; then
-        find $REAL_DIR -type f | sort | xargs -iX bash -c "echo File: X; cat X; echo"
+        find $REAL_DIR \
+            ! -name 'osg-profile.txt*' \
+            ! -name '*.conf'           \
+            ! -name '*.rpmnew'         \
+            ! -name '*.rpmsave'        \
+            -type f -print0 | sort -z | xargs -0 bash -c '
+                for X in "$@"; do
+                    echo "File: $X"; cat "$X"; echo
+                done' -
     else
         echo "$REAL_DIR can't be read as a directory"
     fi
@@ -128,15 +136,14 @@ if [ ! -w $dir ]; then
     exit 1
 fi
 
-log=$dir/"osg-profile.txt"
-if [ -e $log ]; then
-    echo "Backing up old $log to $log.bak"
-    mv -f $log $log.bak
-fi
+tmpd=$(mktemp -d)
+trap 'rm -rf "$tmpd"' EXIT
 
-# Redirect remaining output to $log; send any status messages (via the message
-# function) to console
-exec 3>&2 > "$log" 2>&1
+tmplog=$tmpd/osg-profile.txt
+
+# Redirect remaining output to $tmplog; send any status messages (via the
+# message function) to console (stdout)
+exec 3>&2 > "$tmplog" 2>&1
 
 # Determine whether we are profiling a tarball install or an rpm install
 # based on whether or not $OSG_LOCATION is defined.
@@ -319,6 +326,13 @@ fi
 if $tarball_install; then
     dump_file "$OSG_LOCATION"/etc/fetch-crl*.conf
 fi
+
+log=$dir/"osg-profile.txt"
+if [ -e $log ]; then
+    echo "Backing up old $log to $log.bak"
+    mv -f "$log" "$log.bak"
+fi
+mv -f "$tmplog" "$log"
 
 message ""
 message "Your system profile is located in:"
