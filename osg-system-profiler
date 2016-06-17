@@ -326,7 +326,7 @@ fi
 
 log=$dir/"osg-profile.txt"
 if [ -e $log ]; then
-    echo "Backing up old $log to $log.bak"
+    message "Backing up old $log to $log.bak"
     mv -f "$log" "$log.bak"
 fi
 mv -f "$tmplog" "$log"
