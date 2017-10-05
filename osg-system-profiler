@@ -207,8 +207,6 @@ if $rpm_install; then
     dump_files_in_dir "/etc/osg/config.d"
 fi
 
-run_cmd perl -V
-
 echo "***** Python information:"
 python -c "import sys; print 'Version: ' + sys.version"
 python -c "import sys; print 'Executable: ' + sys.executable"
@@ -288,10 +286,7 @@ if $rpm_install; then
 
     dump_files_that_exist /etc/tomcat{5,6,}/server.xml
 
-    tail_log /var/log/globus-gatekeeper.log 200
     tail_log /var/log/edg-mkgridmap.log 50
-    tail_log /var/log/glite-ce-monitor/glite-ce-monitor.log 200
-    tail_log /var/log/gip/gip.log 200
     tail_log /var/log/gridftp.log 200
     tail_log /var/log/gridftp-auth.log 200
     tail_log /var/log/bestman2/bestman2.log 200
