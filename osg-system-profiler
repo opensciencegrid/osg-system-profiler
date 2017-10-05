@@ -165,10 +165,9 @@ fi
 echo Created at `date`
 echo ""
 
-run_cmd hostname
+run_cmd hostname -f
 run_cmd uname -a
 
-dump_file "/etc/issue"
 dump_file "/etc/redhat-release"
 dump_file "/etc/nsswitch.conf"
 dump_file "/etc/hosts"
