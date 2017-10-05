@@ -198,7 +198,6 @@ if which selinuxenabled &>/dev/null && selinuxenabled; then
 fi
 
 
-run_cmd osg-version
 if $rpm_install; then
     rpm -qa | grep "^osg" | sort | xargs --no-run-if-empty -n 1 rpm -q
     echo ""
