@@ -227,7 +227,6 @@ echo ""
 list_directory "${OSG_LOCATION-}/etc/grid-security"
 if $rpm_install; then
     check_cert "/etc/grid-security/hostcert.pem"
-    check_cert "/etc/grid-security/http/httpcert.pem"
     check_cert "/etc/grid-security/rsv/rsvcert.pem"
     check_cert "/etc/grid-security/voms/vomscert.pem"
 
@@ -282,13 +281,8 @@ if $rpm_install; then
 
     dump_files_in_dir "/etc/globus/"
 
-    dump_files_that_exist /etc/tomcat{5,6,}/server.xml
-
-    tail_log /var/log/edg-mkgridmap.log 50
     tail_log /var/log/gridftp.log 200
     tail_log /var/log/gridftp-auth.log 200
-    tail_log /var/log/bestman2/bestman2.log 200
-    tail_log /var/log/bestman2/event.srm.log 200
 
     # List all RPMs and verify them. Put the listing and the verification in
     # separate sections.  Verification only lists modified RPMs.
