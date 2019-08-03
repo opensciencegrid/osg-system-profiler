@@ -75,4 +75,6 @@ else ifneq ($(shell ls -1 $(UPSTREAM_DIR)/$(TARBALL_NAME) 2>/dev/null),)
 else
 	mkdir -p $(UPSTREAM_DIR)
 	install -p -m 0644 $(TARBALL_NAME) $(UPSTREAM_DIR)/$(TARBALL_NAME)
+	@echo "SHA1SUM:"
+	sha1sum $(TARBALL_NAME)
 endif
