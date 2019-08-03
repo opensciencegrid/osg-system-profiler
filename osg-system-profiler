@@ -292,6 +292,7 @@ if $rpm_install; then
     rpm_verify_log=$(mktemp $dir/rpmverifylog.XXXXXX)
 
     rpm -qa | sort -u | while read rpm_to_verify; do
+        message -n .
         echo $rpm_to_verify >> $all_rpms_log
 
         # This awk trick prints out the header iff rpm --verify actually produces output
@@ -299,6 +300,7 @@ if $rpm_install; then
             NR==1 { print "***** rpm --verify '$rpm_to_verify'" }
             { print }' >> $rpm_verify_log
     done
+    message ""
     echo "***** All RPMs"
     cat $all_rpms_log
     echo ""
