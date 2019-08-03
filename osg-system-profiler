@@ -302,8 +302,13 @@ if $rpm_install; then
     all_rpms_log=$(mktemp $dir/allrpmslog.XXXXXX)
     rpm_verify_log=$(mktemp $dir/rpmverifylog.XXXXXX)
 
-    rpm -qa | grep -v kernel-devel |  sort -u | while read rpm_to_verify; do
-        message -n .
+    width=$(( ${COLUMNS:-80} - 1 ))
+    rpm -qa | grep -v kernel-devel | sort -u | while read rpm_to_verify; do
+        if [[ -t 3 ]]; then
+            printf "%-${width}s\r" "$rpm_to_verify" >&3
+        else
+            message -n .
+        fi
         echo $rpm_to_verify >> $all_rpms_log
 
         # This awk trick prints out the header iff rpm --verify actually produces output
