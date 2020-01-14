@@ -206,7 +206,11 @@ if $rpm_install; then
 fi
 
 echo "***** Xrootd information:"
-dump_files_in_dir "/etc/xrootd"
+for file in `ls /etc/xrootd/xrootd-*.cfg`;
+do
+    dump_file $file
+done
+dump_files_in_dir "/etc/xrootd/config.d"
 
 echo "***** Showing processes owned by the user xrootd"
 ps -u xrootd u
