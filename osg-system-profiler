@@ -208,8 +208,8 @@ fi
 echo "***** Xrootd information:"
 dump_files_in_dir "/etc/xrootd"
 
-echo "***** Running: ps aux | grep xrootd"
-ps aux | grep "^xrootd"
+echo "***** Showing processes owned by the user xrootd"
+ps -u xrootd u
 echo ""
 
 echo "***** Python information:"
