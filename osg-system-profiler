@@ -291,7 +291,7 @@ if $rpm_install; then
     all_rpms_log=$(mktemp $dir/allrpmslog.XXXXXX)
     rpm_verify_log=$(mktemp $dir/rpmverifylog.XXXXXX)
 
-    rpm -qa | sort -u | while read rpm_to_verify; do
+    rpm -qa | grep -v kernel-devel |  sort -u | while read rpm_to_verify; do
         message -n .
         echo $rpm_to_verify >> $all_rpms_log
 
@@ -333,6 +333,8 @@ message "You may also follow one of the other methods for getting help"
 message "listed at:"
 message "  https://opensciencegrid.github.io/docs/common/help/"
 message ""
+
+echo Finished at `date`
 
 exit 0
 
