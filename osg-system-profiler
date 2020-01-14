@@ -205,6 +205,13 @@ if $rpm_install; then
     dump_files_in_dir "/etc/osg/config.d"
 fi
 
+echo "***** Xrootd information:"
+dump_files_in_dir "/etc/xrootd"
+
+echo "***** Running: ps aux | grep xrootd"
+ps aux | grep "^xrootd"
+echo ""
+
 echo "***** Python information:"
 python -c "import sys; print 'Version: ' + sys.version"
 python -c "import sys; print 'Executable: ' + sys.executable"
