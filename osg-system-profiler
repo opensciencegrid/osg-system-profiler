@@ -205,6 +205,17 @@ if $rpm_install; then
     dump_files_in_dir "/etc/osg/config.d"
 fi
 
+echo "***** Xrootd information:"
+for file in /etc/xrootd/xrootd-*.cfg
+do
+    dump_file $file
+done
+dump_files_in_dir "/etc/xrootd/config.d"
+
+echo "***** Showing processes owned by the user xrootd"
+ps -u xrootd u
+echo ""
+
 echo "***** Python information:"
 python -c "import sys; print 'Version: ' + sys.version"
 python -c "import sys; print 'Executable: ' + sys.executable"
@@ -337,4 +348,3 @@ message ""
 echo Finished at `date`
 
 exit 0
-
