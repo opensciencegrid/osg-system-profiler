@@ -206,7 +206,7 @@ if $rpm_install; then
 fi
 
 echo "***** Xrootd information:"
-for file in `ls /etc/xrootd/xrootd-*.cfg`;
+for file in /etc/xrootd/xrootd-*.cfg
 do
     dump_file $file
 done
@@ -346,4 +346,3 @@ message "  https://opensciencegrid.github.io/docs/common/help/"
 message ""
 
 exit 0
-
