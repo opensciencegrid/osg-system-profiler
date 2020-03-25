@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python2
 """View the output from osg-system-profiler in a structured way"""
 
 from Tkinter import *
