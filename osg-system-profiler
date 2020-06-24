@@ -1,6 +1,20 @@
 #!/bin/bash -p
 # ^ -p protects us from shellshock
 
+# pick a python
+if command -v python >/dev/null 2>&1; then
+    python=python
+elif command -v python3 >/dev/null 2>&1; then
+    python=python3
+elif command -v python2 >/dev/null 2>&1; then
+    python=python2
+elif test -x /usr/libexec/platform-python; then
+    python=/usr/libexec/platform-python
+else
+    echo >&2 "Can't find Python"
+fi
+
+
 realdir ()
 {
     # print the canonical path of a directory, resolving symlinks in
@@ -217,11 +231,11 @@ ps -u xrootd u
 echo ""
 
 echo "***** Python information:"
-python -c "import sys; print 'Version: ' + sys.version"
-python -c "import sys; print 'Executable: ' + sys.executable"
-python -c "import sys; print 'Prefix: ' + sys.prefix"
-python -c 'import platform; print "Architecture: ",; print platform.architecture()'
-python -c "import sys; print 'Search paths: ',; print  sys.path"
+$python -c "import sys; print('Version: ' + sys.version)"
+$python -c "import sys; print('Executable: ' + sys.executable)"
+$python -c "import sys; print('Prefix: ' + sys.prefix)"
+$python -c 'import platform; print("Architecture: " + str(platform.architecture()))'
+$python -c "import sys; print('Search paths: ' + str(sys.path))"
 echo ""
 
 run_cmd openssl version
