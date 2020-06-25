@@ -131,6 +131,7 @@ python_info () {
     $python -c "import sys; print('Prefix: ' + sys.prefix)"
     $python -c 'import platform; print("Architecture: " + str(platform.architecture()))'
     $python -c "import sys; print('Search paths: ' + str(sys.path))"
+    echo "------"
 }
 
 dir=`pwd`
