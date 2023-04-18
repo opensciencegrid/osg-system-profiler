@@ -184,6 +184,7 @@ dump_file "/etc/hosts"
 
 run_cmd df --human-readable --print-type
 run_cmd free
+run_cmd update-crypto-policies --show
 
 dump_file "/proc/cpuinfo"
 
