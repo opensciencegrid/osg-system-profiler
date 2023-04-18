@@ -184,7 +184,15 @@ dump_file "/etc/hosts"
 
 run_cmd df --human-readable --print-type
 run_cmd free
-run_cmd update-crypto-policies --show
+
+version=$(grep -E '^(VERSION)=' /etc/os-release | cut -d '"' -f 2)
+
+if [[ $version == 8* || $version == 9* ]]; then
+    echo "Crypto Policy is: `update-crypto-policies --show`"
+else
+    echo "Crypto Policy is not available"
+
+fi
 
 dump_file "/proc/cpuinfo"
 
