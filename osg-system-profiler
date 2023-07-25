@@ -185,13 +185,12 @@ dump_file "/etc/hosts"
 run_cmd df --human-readable --print-type
 run_cmd free
 
-version=$(grep -E '^(VERSION)=' /etc/os-release | cut -d '"' -f 2)
 
-if [[ $version == 8* || $version == 9* ]]; then
-    echo "Crypto Policy is: `update-crypto-policies --show`"
+if which update-crypto-policies &>/dev/null; then
+    echo "***** Crypto Policy"
+    update-crypto-policies --show
 else
-    echo "Crypto Policy is not available"
-
+    echo "***** Crypto Binary not found..."
 fi
 
 dump_file "/proc/cpuinfo"
