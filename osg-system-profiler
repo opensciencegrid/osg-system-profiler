@@ -188,7 +188,7 @@ run_cmd free
 
 if which update-crypto-policies &>/dev/null; then
     echo "***** Crypto Policy"
-    update-crypto-policies --show
+    update-crypto-policies --show 2>&1
 else
     echo "***** Crypto Binary not found..."
 fi
