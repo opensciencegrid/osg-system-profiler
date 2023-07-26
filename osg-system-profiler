@@ -184,7 +184,14 @@ dump_file "/etc/hosts"
 
 run_cmd df --human-readable --print-type
 run_cmd free
-run_cmd update-crypto-policies --show
+
+
+if which update-crypto-policies &>/dev/null; then
+    echo "***** Crypto Policy"
+    update-crypto-policies --show 2>&1
+else
+    echo "***** Crypto Binary not found..."
+fi
 
 dump_file "/proc/cpuinfo"
 
