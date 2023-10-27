@@ -134,6 +134,59 @@ python_info () {
     echo "------"
 }
 
+
+cconfig_dump_systemd () {
+    local instance="$1"
+    local executable="$2"
+
+    local service="${executable}@${instance}.service"
+    local servicep="${executable}-privileged@${instance}.service"
+    local active
+    local activep
+    local enabled
+    local enabledp
+
+    [[ $(systemctl is-active "$service")   == active  ]] && active=1
+    [[ $(systemctl is-active "$servicep")  == active  ]] && activep=1
+    [[ $(systemctl is-enabled "$service")  == enabled ]] && enabled=1
+    [[ $(systemctl is-enabled "$servicep") == enabled ]] && enabledp=1
+
+    if [[ ! ( $active || $activep || $enabled || $enabledp ) ]]; then
+        # This service is neither enabled nor active. Skip it; we don't care
+        return 0
+    fi
+
+    echo -n "***** XRootD cconfig for executable $executable, instance $instance ("
+    if [[ $activep ]]; then
+        echo -n "active (privileged)"
+    elif [[ $active ]]; then
+        echo -n "active"
+    else
+        echo -n "inactive"
+    fi
+    echo -n ", "
+    if [[ $enabledp ]]; then
+        echo -n "enabled (privileged)"
+    elif [[ $enabled ]]; then
+        echo -n "enabled"
+    else
+        echo -n "disabled"
+    fi
+    echo ")"
+
+    if [[ $enabled && $enabledp ]]; then
+        echo "WARNING! Both $service and $servicep are enabled; this may result in conflicts"
+    fi
+    if [[ $active && $activep ]]; then
+        echo "WARNING! Both $service and $servicep are active; this may result in conflicts"
+    fi
+
+    cconfig -x "$executable" -h "$(hostname -f)" -n "$instance" -c "/etc/xrootd/xrootd-${instance}.cfg" 2>&1 \
+        | grep -v "^Config continuing with file "
+    echo
+}
+
+
 dir=`pwd`
 
 if [ ! -w $dir ]; then
@@ -223,6 +276,17 @@ if $rpm_install; then
     dump_files_in_dir "/etc/osg/config.d"
 fi
 
+# XRootD cconfig dumps for available instances
+if command -v cconfig &>/dev/null; then
+    for file in /etc/xrootd/xrootd-*.cfg
+    do
+        instance=${file#/etc/xrootd/xrootd-}
+        instance=${instance%.cfg}
+
+        cconfig_dump_systemd "$instance" "xrootd"
+        cconfig_dump_systemd "$instance" "cmsd"
+    done
+fi
 echo "***** Xrootd information:"
 for file in /etc/xrootd/xrootd-*.cfg
 do
