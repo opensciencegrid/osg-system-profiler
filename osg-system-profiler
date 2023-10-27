@@ -358,12 +358,6 @@ fi
 
 
 if $rpm_install; then
-    PATH=$PATH:/usr/libexec/osg-system-profiler
-    if type -f gratia-pbs-lsf-config-check &>/dev/null && rpm -q gratia-probe-pbs-lsf &>/dev/null; then
-        echo "***** Gratia PBS/LSF config check"
-        gratia-pbs-lsf-config-check
-    fi
-
     dump_file "/etc/yum.conf"
 
     dump_files_in_dir "/etc/yum.repos.d/"
