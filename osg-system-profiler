@@ -320,7 +320,6 @@ echo ""
 list_directory "${OSG_LOCATION-}/etc/grid-security"
 if $rpm_install; then
     check_cert "/etc/grid-security/hostcert.pem"
-    check_cert "/etc/grid-security/rsv/rsvcert.pem"
     check_cert "/etc/grid-security/voms/vomscert.pem"
 
     run_cmd rpm -q --whatprovides grid-certificates
@@ -365,17 +364,9 @@ if $rpm_install; then
         gratia-pbs-lsf-config-check
     fi
 
-    dump_file "/etc/grid-security/gsi-authz.conf"
-    dump_file "/etc/lcmaps.db"
-
     dump_file "/etc/yum.conf"
 
     dump_files_in_dir "/etc/yum.repos.d/"
-
-    dump_files_in_dir "/etc/globus/"
-
-    tail_log /var/log/gridftp.log 200
-    tail_log /var/log/gridftp-auth.log 200
 
     # List all RPMs and verify them. Put the listing and the verification in
     # separate sections.  Verification only lists modified RPMs.
