@@ -16,10 +16,8 @@ VERSION := 1.7.0
 BIN_DIR := usr/bin
 BIN_FILES := osg-system-profiler osg-system-profiler-viewer \
 	     osg-installed-versions
-LIBEXEC_DIR := usr/libexec/$(PACKAGE)
-LIBEXEC_FILES := gratia-pbs-lsf-config-check
 
-DIST_FILES := $(BIN_FILES) $(LIBEXEC_FILES) Makefile
+DIST_FILES := $(BIN_FILES) Makefile
 
 
 # ------------------------------------------------------------------------------
@@ -53,8 +51,6 @@ endif
 install:
 	mkdir -p $(DESTDIR)/$(BIN_DIR)
 	install -p -m 0755 $(BIN_FILES) $(DESTDIR)/$(BIN_DIR)
-	mkdir -p $(DESTDIR)/$(LIBEXEC_DIR)
-	install -p -m 0755 $(LIBEXEC_FILES) $(DESTDIR)/$(LIBEXEC_DIR)
 
 
 dist: $(TARBALL_NAME)
