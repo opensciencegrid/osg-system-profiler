@@ -276,27 +276,35 @@ if $rpm_install; then
     dump_files_in_dir "/etc/osg/config.d"
 fi
 
-# XRootD cconfig dumps for available instances
-if command -v cconfig &>/dev/null; then
+if [[ -d /etc/xrootd ]]; then
+    # XRootD cconfig dumps for available instances
+    if command -v cconfig &>/dev/null; then
+        for file in /etc/xrootd/xrootd-*.cfg
+        do
+            instance=${file#/etc/xrootd/xrootd-}
+            instance=${instance%.cfg}
+
+            cconfig_dump_systemd "$instance" "xrootd"
+            cconfig_dump_systemd "$instance" "cmsd"
+        done
+    fi
+    echo "***** Xrootd information:"
     for file in /etc/xrootd/xrootd-*.cfg
     do
-        instance=${file#/etc/xrootd/xrootd-}
-        instance=${instance%.cfg}
-
-        cconfig_dump_systemd "$instance" "xrootd"
-        cconfig_dump_systemd "$instance" "cmsd"
+        dump_file $file
     done
-fi
-echo "***** Xrootd information:"
-for file in /etc/xrootd/xrootd-*.cfg
-do
-    dump_file $file
-done
-dump_files_in_dir "/etc/xrootd/config.d"
+    dump_files_in_dir "/etc/xrootd/config.d"
 
-echo "***** Showing processes owned by the user xrootd"
-ps -u xrootd u
-echo ""
+    if getent passwd xrootd &>/dev/null; then
+        echo "***** Showing processes owned by the user xrootd"
+        ps -u xrootd u
+        echo ""
+    else
+        echo "***** No xrootd user"
+    fi
+else
+    echo "***** XRootD not installed"
+fi
 
 echo "***** Python information:"
 
