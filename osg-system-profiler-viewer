@@ -25,7 +25,7 @@ class Section(object):
 
 def is_empty(text):
     "True if a block of text is empty except for whitespace"
-    return not re.search('\S', text)
+    return not re.search(r'\S', text)
 
 
 def load_pdata_from_handle(fh):
