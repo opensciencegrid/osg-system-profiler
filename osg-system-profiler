@@ -329,6 +329,7 @@ list_directory "${OSG_LOCATION-}/etc/grid-security"
 if $rpm_install; then
     check_cert "/etc/grid-security/hostcert.pem"
     check_cert "/etc/grid-security/voms/vomscert.pem"
+    check_cert "/etc/grid-security/xrd/xrdcert.pem"
 
     run_cmd rpm -q --whatprovides grid-certificates
 fi
