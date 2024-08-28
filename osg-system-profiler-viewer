@@ -185,9 +185,10 @@ def main():
         pdata = load_pdata_from_file(profile)
     else:
         pdata = load_pdata_from_url(profile)
-    installed_versions = get_installed_versions(profile)
-    if installed_versions:
-        pdata.append(installed_versions)
+    ## XXX This script is currently broken (SOFTWARE-5769)
+    # installed_versions = get_installed_versions(profile)
+    # if installed_versions:
+    #     pdata.append(installed_versions)
     root = Tk()
     root.wm_title("osg-system-profiler viewer")
     app = Application(root, pdata)
