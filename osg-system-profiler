@@ -151,11 +151,6 @@ cconfig_dump_systemd () {
     [[ $(systemctl is-enabled "$service")  == enabled ]] && enabled=1
     [[ $(systemctl is-enabled "$servicep") == enabled ]] && enabledp=1
 
-    if [[ ! ( $active || $activep || $enabled || $enabledp ) ]]; then
-        # This service is neither enabled nor active. Skip it; we don't care
-        return 0
-    fi
-
     echo -n "***** XRootD cconfig for executable $executable, instance $instance ("
     if [[ $activep ]]; then
         echo -n "active (privileged)"
