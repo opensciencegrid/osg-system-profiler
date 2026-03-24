@@ -135,6 +135,23 @@ python_info () {
 }
 
 
+_systemctl_is_service_on () {
+    local service="$1"
+    # Check if a service is 'on', i.e. either active or enabled
+
+    command -v systemctl &>/dev/null || return
+    if [[ $(systemctl is-system-running) == offline ]]; then
+        # Can't contact systemd
+        return 1
+    fi
+    if [[ $(systemctl is-active "$service" 2>/dev/null) == active || $(systemctl is-enabled "$service" 2>/dev/null) == enabled ]]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+
 cconfig_dump_systemd () {
     local instance="$1"
     local executable="$2"
@@ -212,6 +229,14 @@ if [[ -n $OSG_LOCATION ]]; then
 fi
 
 message "OSG System Profiler"
+
+# Get consistent naming and sorting
+if grep -q 'VERSION=["]7' /etc/os-release 2>/dev/null; then
+    export LANG=C LC_ALL=C
+else
+    export LANG=C.UTF-8 LC_ALL=C.UTF-8
+fi
+
 if $tarball_install; then
     message "Analyzing tarball install with OSG_LOCATION=$OSG_LOCATION..."
     echo "OSG System Profile (tarball OSG_LOCATION=$OSG_LOCATION)"
@@ -269,6 +294,46 @@ if $rpm_install; then
 
     tail_log /var/log/osg/osg-configure.log 200
     dump_files_in_dir "/etc/osg/config.d"
+
+    pelican_rpms=$(rpm -qa '*pelican*' '*osdf*')
+    if [[ -n $pelican_rpms && -d /etc/pelican ]]; then
+        echo "***** Pelican files"
+        echo ""
+        find /etc/pelican -ls | sort -b -k11 | head -n 100
+
+        for file in /etc/pelican/*.yaml; do
+            [[ -e "$file" ]] && dump_file "$file"
+        done
+        dump_files_in_dir "/etc/pelican/config.d"
+
+        if command -v pelican-server &>/dev/null; then
+            did_dump=0
+            for service in pelican-registry pelican-director osdf-origin pelican-origin osdf-cache pelican-cache
+            do
+                config_file=/etc/pelican/${service}.yaml
+                if [[ ! -e $config_file ]]; then
+                    continue
+                fi
+                if _systemctl_is_service_on "$service"; then
+                    echo "***** Pelican config dump for $service"
+                    # Note: this uses the caller's environment instead of the
+                    # service's environment so it may be inaccurate.
+                    pelican-server config dump --config /etc/pelican/${service}.yaml
+                    did_dump=1
+                    # don't do a config dump of more than one service -
+                    # there's a lot of redundancy
+                    break
+                fi
+            done
+            if [[ $did_dump -eq 0 && -e /etc/pelican/pelican-cache.yaml ]]; then
+                # Everything is off so we don't know what they want to run.
+                # Guess and dump the cache config - it tells us about all the
+                # other services, too.
+                echo "***** Pelican config dump for pelican-cache (off)"
+                pelican-server config dump --config /etc/pelican/pelican-cache.yaml
+            fi
+        fi
+    fi
 fi
 
 if [[ -d /etc/xrootd ]]; then
